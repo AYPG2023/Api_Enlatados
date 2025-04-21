@@ -1,4 +1,4 @@
-package com.ap.model;
+package com.ap.enlatados.model;
 
 import jakarta.persistence.*;
 import jakarta.persistence.Id;

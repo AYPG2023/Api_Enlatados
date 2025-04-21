@@ -1,4 +1,4 @@
-package com.ap.model;
+package com.ap.enlatados.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
