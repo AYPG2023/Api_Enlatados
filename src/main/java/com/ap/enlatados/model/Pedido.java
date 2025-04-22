@@ -29,4 +29,78 @@ public class Pedido {
 
 	    @ManyToOne(fetch = FetchType.LAZY)
 	    private Vehiculo vehiculo;
+
+		public Long getId() {
+			return id;
+		}
+
+		public void setId(Long id) {
+			this.id = id;
+		}
+
+		public String getDeptoOrigen() {
+			return deptoOrigen;
+		}
+
+		public void setDeptoOrigen(String deptoOrigen) {
+			this.deptoOrigen = deptoOrigen;
+		}
+
+		public String getDeptoDestino() {
+			return deptoDestino;
+		}
+
+		public void setDeptoDestino(String deptoDestino) {
+			this.deptoDestino = deptoDestino;
+		}
+
+		public String getFechaHoraInicio() {
+			return fechaHoraInicio;
+		}
+
+		public void setFechaHoraInicio(String fechaHoraInicio) {
+			this.fechaHoraInicio = fechaHoraInicio;
+		}
+
+		public int getNumeroCajas() {
+			return numeroCajas;
+		}
+
+		public void setNumeroCajas(int numeroCajas) {
+			this.numeroCajas = numeroCajas;
+		}
+
+		public String getEstado() {
+			return estado;
+		}
+
+		public void setEstado(String estado) {
+			this.estado = estado;
+		}
+
+		public Cliente getCliente() {
+			return cliente;
+		}
+
+		public void setCliente(Cliente cliente) {
+			this.cliente = cliente;
+		}
+
+		public Repartidor getRepartidor() {
+			return repartidor;
+		}
+
+		public void setRepartidor(Repartidor repartidor) {
+			this.repartidor = repartidor;
+		}
+
+		public Vehiculo getVehiculo() {
+			return vehiculo;
+		}
+
+		public void setVehiculo(Vehiculo vehiculo) {
+			this.vehiculo = vehiculo;
+		}
+	    
+	    
 }

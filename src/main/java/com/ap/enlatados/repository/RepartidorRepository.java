@@ -3,6 +3,6 @@ package com.ap.enlatados.repository;
 import com.ap.enlatados.model.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface RepartidorRepository {
+public interface RepartidorRepository extends JpaRepository<Repartidor,      Long>{
 
 }
