@@ -5,6 +5,9 @@ import java.util.List;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import com.ap.enlatados.dto.CrearPedidoDTO;
+import com.ap.enlatados.dto.ActualizarPedidoDTO;
+import com.ap.enlatados.dto.PedidoNode;
 import com.ap.enlatados.model.Pedido;
 import com.ap.enlatados.service.PedidoService;
 
@@ -17,18 +20,6 @@ public class PedidoController {
 
     public PedidoController(PedidoService svc) {
         this.svc = svc;
-    }
-
-    public static class CrearPedidoDTO {
-        public String origen;
-        public String destino;
-        public Long clienteId;
-        public int numCajas;
-    }
-
-    public static class ActualizarPedidoDTO {
-        public String origen;
-        public String destino;
     }
 
     @PostMapping
@@ -56,7 +47,9 @@ public class PedidoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> actualizar(@PathVariable Long id, @RequestBody ActualizarPedidoDTO dto) {
+    public ResponseEntity<?> actualizar(
+            @PathVariable Long id,
+            @RequestBody ActualizarPedidoDTO dto) {
         try {
             Pedido upd = svc.actualizar(id, dto.origen, dto.destino);
             return ResponseEntity.ok(upd);
@@ -86,5 +79,12 @@ public class PedidoController {
                                 : HttpStatus.NOT_FOUND;
             return ResponseEntity.status(status).body(ex.getMessage());
         }
+    }
+
+    /** Nuevo endpoint para obtener la lista enlazada de pedidos **/
+    @GetMapping("/linkedlist")
+    public ResponseEntity<PedidoNode> listaEnlazada() {
+        PedidoNode head = svc.obtenerListaEnlazada();
+        return ResponseEntity.ok(head);
     }
 }

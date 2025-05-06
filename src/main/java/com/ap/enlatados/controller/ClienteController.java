@@ -6,6 +6,7 @@ import java.util.NoSuchElementException;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import com.ap.enlatados.dto.ClienteNode;
 import com.ap.enlatados.model.Cliente;
 import com.ap.enlatados.service.ClienteService;
 
@@ -35,7 +36,8 @@ public class ClienteController {
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
         Cliente c = svc.buscarPorId(id);
         if (c == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Cliente no encontrado");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body("Cliente no encontrado");
         }
         return ResponseEntity.ok(c);
     }
@@ -44,18 +46,21 @@ public class ClienteController {
     public ResponseEntity<?> obtenerPorDpi(@PathVariable String dpi) {
         Cliente c = svc.buscarPorDpi(dpi);
         if (c == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Cliente no encontrado");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body("Cliente no encontrado");
         }
         return ResponseEntity.ok(c);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> actualizar(@PathVariable Long id, @RequestBody Cliente c) {
+    public ResponseEntity<?> actualizar(@PathVariable Long id,
+                                        @RequestBody Cliente c) {
         try {
             Cliente updated = svc.actualizar(id, c);
             return ResponseEntity.ok(updated);
         } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body(ex.getMessage());
         }
     }
 
@@ -65,7 +70,15 @@ public class ClienteController {
             svc.eliminar(id);
             return ResponseEntity.noContent().build();
         } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body(ex.getMessage());
         }
+    }
+
+    /** Nuevo endpoint: devuelve el árbol AVL de clientes **/
+    @GetMapping("/tree")
+    public ResponseEntity<ClienteNode> arbol() {
+        ClienteNode root = svc.obtenerArbolClientes();
+        return ResponseEntity.ok(root);
     }
 }

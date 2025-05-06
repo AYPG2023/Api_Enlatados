@@ -7,6 +7,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ap.enlatados.dto.CajaNode;
 import com.ap.enlatados.model.Caja;
 import com.ap.enlatados.repository.CajaRepository;
 
@@ -68,5 +69,21 @@ public class CajaService {
         Node n = new Node(c);
         n.next = top;
         top = n;
+    }
+    
+    /**
+     * Expone la pila interna de cajas como una lista enlazada de DTOs.
+     */
+    public CajaNode obtenerPilaEnlazada() {
+        return toDtoNode(top);
+    }
+
+    private CajaNode toDtoNode(Node n) {
+        if (n == null) return null;
+        CajaNode dto = new CajaNode();
+        dto.id            = n.data.getId();
+        dto.fechaIngreso  = n.data.getFechaIngreso();
+        dto.next          = toDtoNode(n.next);
+        return dto;
     }
 }

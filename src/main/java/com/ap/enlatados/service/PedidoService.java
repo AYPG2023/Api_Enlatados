@@ -1,12 +1,17 @@
 package com.ap.enlatados.service;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+
 import jakarta.annotation.PostConstruct;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ap.enlatados.dto.PedidoNode;
 import com.ap.enlatados.model.Pedido;
 import com.ap.enlatados.model.Cliente;
 import com.ap.enlatados.model.Repartidor;
@@ -17,9 +22,11 @@ import com.ap.enlatados.repository.PedidoRepository;
 @Transactional
 public class PedidoService {
 
+    // Nodo interno para la lista enlazada
     private static class Node {
-        Pedido data; Node next;
-        Node(Pedido p){ data = p; }
+        Pedido data;
+        Node next;
+        Node(Pedido p){ this.data = p; }
     }
 
     private Node head;
@@ -43,16 +50,13 @@ public class PedidoService {
 
     @PostConstruct
     private void init() {
+        // Al arrancar, cargamos todos los pedidos en la lista enlazada interna
         repo.findAll().forEach(this::insertarEnLista);
     }
 
     /**
-     * Crea un nuevo pedido:
-     * - Busca el cliente por ID (ya existe buscarPorId en ClienteService)
-     * - Extrae un repartidor (FIFO)
-     * - Extrae un vehículo (FIFO)
-     * - Extrae numCajas cajas (LIFO)
-     * - Guarda y añade a la lista enlazada interna
+     * Crea un nuevo pedido, asigna cliente, repartidor, vehículo y cajas,
+     * lo persiste y lo añade a la lista enlazada interna.
      */
     public Pedido crear(String origen, String destino, Long clienteId, int numCajas) {
         // 1) Cliente
@@ -68,7 +72,6 @@ public class PedidoService {
         // 3) Vehículo
         Vehiculo veh = vehiculoSvc.dequeue();
         if (veh == null) {
-            // devolvemos el repartidor a la cola
             repartidorSvc.reenqueue(rep);
             throw new NoSuchElementException("No hay vehículos disponibles");
         }
@@ -76,14 +79,14 @@ public class PedidoService {
         // 4) Cajas
         for (int i = 0; i < numCajas; i++) {
             if (cajaSvc.extraer() == null) {
-                // falta cajas: devolvemos recursos y error
+                // Devolver recursos si no hay suficientes cajas
                 repartidorSvc.reenqueue(rep);
                 vehiculoSvc.reenqueue(veh);
                 throw new NoSuchElementException("No hay suficientes cajas disponibles");
             }
         }
 
-        // 5) Crear Pedido
+        // 5) Construir y guardar Pedido
         Pedido p = new Pedido();
         p.setDeptoOrigen(origen);
         p.setDeptoDestino(destino);
@@ -109,7 +112,9 @@ public class PedidoService {
         return repo.findById(id).orElse(null);
     }
 
-    /** Completa el pedido: cambia estado y reencola recursos **/
+    /**
+     * Marca un pedido como completado, reencola repartidor y vehículo.
+     */
     public Pedido completar(Long id) {
         Pedido p = buscar(id);
         if (p == null) {
@@ -124,13 +129,13 @@ public class PedidoService {
         return repo.save(p);
     }
 
-    /** Elimina un pedido (BD + lista enlazada) **/
+    /** Elimina un pedido de la BD y de la lista enlazada **/
     public void eliminar(Long id) {
         repo.deleteById(id);
         eliminarDeLista(id);
     }
 
-    /** Actualiza origen y destino de un pedido **/
+    /** Actualiza solo origen y destino de un pedido **/
     public Pedido actualizar(Long id, String origen, String destino) {
         return repo.findById(id)
             .map(p -> {
@@ -145,13 +150,10 @@ public class PedidoService {
 
     private void insertarEnLista(Pedido p) {
         Node n = new Node(p);
-        if (head == null) {
-            head = n;
-        } else {
+        if (head == null) head = n;
+        else {
             Node t = head;
-            while (t.next != null) {
-                t = t.next;
-            }
+            while (t.next != null) t = t.next;
             t.next = n;
         }
     }
@@ -170,5 +172,25 @@ public class PedidoService {
             }
             t = t.next;
         }
+    }
+
+    // --- Nueva funcionalidad para exponer la lista enlazada como DTO ---
+
+    /**
+     * Devuelve la cabeza de la lista enlazada de pedidos en forma de DTO recursivo
+     */
+    public PedidoNode obtenerListaEnlazada() {
+        return toDtoNode(head);
+    }
+
+    private PedidoNode toDtoNode(Node n) {
+        if (n == null) return null;
+        PedidoNode dto = new PedidoNode();
+        dto.id      = n.data.getId();
+        dto.origen  = n.data.getDeptoOrigen();
+        dto.destino = n.data.getDeptoDestino();
+        dto.estado  = n.data.getEstado();
+        dto.next    = toDtoNode(n.next);
+        return dto;
     }
 }

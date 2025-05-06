@@ -9,6 +9,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ap.enlatados.dto.UsuarioNode;
 import com.ap.enlatados.model.Usuario;
 import com.ap.enlatados.repository.UsuarioRepository;
 
@@ -16,13 +17,14 @@ import com.ap.enlatados.repository.UsuarioRepository;
 @Transactional
 public class UsuarioService {
 
-    private static class Nodo {
+    // Nodo interno para la lista enlazada
+    private static class UsuarioNodeInternal {
         Usuario data;
-        Nodo next;
-        Nodo(Usuario u){ this.data = u; }
+        UsuarioNodeInternal next;
+        UsuarioNodeInternal(Usuario u) { this.data = u; }
     }
 
-    private Nodo head;
+    private UsuarioNodeInternal head;
     private final UsuarioRepository repo;
 
     public UsuarioService(UsuarioRepository repo) {
@@ -31,61 +33,58 @@ public class UsuarioService {
 
     @PostConstruct
     private void init() {
-        // Carga inicial en la lista enlazada desde la BD
+        // carga inicial desde BD
         repo.findAll().forEach(this::insertarEnLista);
     }
 
-    /** Crea un nuevo usuario (y lo añade a la lista enlazada) **/
+    /** Crear + push a la lista enlazada */
     public Usuario crear(Usuario u) {
-        // u debe traer nombre, apellidos, password y email
         Usuario saved = repo.save(u);
         insertarEnLista(saved);
         return saved;
     }
 
-    /** Lista todos los usuarios desde la BD **/
+    /** Listar desde BD */
     public List<Usuario> listar() {
         return repo.findAll();
     }
 
-    /** Busca un usuario por su ID **/
+    /** Buscar en BD */
     public Optional<Usuario> buscar(Long id) {
         return repo.findById(id);
     }
 
-    /** Actualiza un usuario existente **/
+    /** Actualizar + conserva posición en lista */
     public Usuario actualizar(Long id, Usuario u) {
         return repo.findById(id)
             .map(existing -> {
                 existing.setNombre(u.getNombre());
                 existing.setApellidos(u.getApellidos());
                 existing.setPassword(u.getPassword());
-                existing.setEmail(u.getEmail());         // <-- actualizar email
+                existing.setEmail(u.getEmail());
                 return repo.save(existing);
             })
             .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
     }
 
-    /** Elimina un usuario (BD + lista enlazada) **/
+    /** Eliminar BD + pop de la lista */
     public void eliminar(Long id) {
         repo.deleteById(id);
         eliminarDeLista(id);
     }
 
     // -----------------------
-    // Métodos internos LIFO
+    // manejo de lista enlazada
     // -----------------------
 
     private void insertarEnLista(Usuario u) {
-        Nodo node = new Nodo(u);
+        UsuarioNodeInternal n = new UsuarioNodeInternal(u);
         if (head == null) {
-            head = node;
+            head = n;
         } else {
-            Nodo t = head;
-            while (t.next != null) {
-                t = t.next;
-            }
-            t.next = node;
+            UsuarioNodeInternal t = head;
+            while (t.next != null) t = t.next;
+            t.next = n;
         }
     }
 
@@ -95,7 +94,7 @@ public class UsuarioService {
             head = head.next;
             return;
         }
-        Nodo t = head;
+        UsuarioNodeInternal t = head;
         while (t.next != null) {
             if (t.next.data.getId().equals(id)) {
                 t.next = t.next.next;
@@ -103,5 +102,25 @@ public class UsuarioService {
             }
             t = t.next;
         }
+    }
+
+    // -------------------------------------------------
+    // NUEVO: exponer lista enlazada como DTO recursivo
+    // -------------------------------------------------
+
+    /** Devuelve la cabeza de la lista enlazada como DTO */
+    public UsuarioNode obtenerListaEnlazada() {
+        return toDto(head);
+    }
+
+    private UsuarioNode toDto(UsuarioNodeInternal n) {
+        if (n == null) return null;
+        UsuarioNode dto = new UsuarioNode();
+        dto.id        = n.data.getId();
+        dto.nombre    = n.data.getNombre();
+        dto.apellidos = n.data.getApellidos();
+        dto.email     = n.data.getEmail();
+        dto.next      = toDto(n.next);
+        return dto;
     }
 }
