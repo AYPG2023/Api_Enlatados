@@ -6,6 +6,7 @@ import java.util.NoSuchElementException;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import com.ap.enlatados.dto.LinkedVehiculoNode;
 import com.ap.enlatados.model.Vehiculo;
 import com.ap.enlatados.service.VehiculoService;
 
@@ -35,18 +36,21 @@ public class VehiculoController {
     public ResponseEntity<?> obtener(@PathVariable Long id) {
         Vehiculo v = svc.buscar(id);
         if (v == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Vehículo no encontrado");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body("Vehículo no encontrado");
         }
         return ResponseEntity.ok(v);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> actualizar(@PathVariable Long id, @RequestBody Vehiculo v) {
+    public ResponseEntity<?> actualizar(@PathVariable Long id,
+                                        @RequestBody Vehiculo v) {
         try {
             Vehiculo upd = svc.actualizar(id, v);
             return ResponseEntity.ok(upd);
         } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body(ex.getMessage());
         }
     }
 
@@ -56,17 +60,26 @@ public class VehiculoController {
             svc.eliminar(id);
             return ResponseEntity.noContent().build();
         } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body(ex.getMessage());
         }
     }
 
-    /** Asignar siguiente vehículo (dequeue) **/
+    /** Extrae el siguiente vehículo (dequeue) **/
     @GetMapping("/asignar")
     public ResponseEntity<?> asignarSiguiente() {
         Vehiculo v = svc.dequeue();
         if (v == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No hay vehículos disponibles");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body("No hay vehículos disponibles");
         }
         return ResponseEntity.ok(v);
+    }
+
+    /** Devuelve la cola completa como lista enlazada de DTOs **/
+    @GetMapping("/linked")
+    public ResponseEntity<LinkedVehiculoNode> colaEnlazada() {
+        LinkedVehiculoNode head = svc.obtenerColaEnlazada();
+        return ResponseEntity.ok(head);
     }
 }
