@@ -1,18 +1,20 @@
 package com.ap.enlatados.controller;
 
-import java.util.List;
-import java.util.NoSuchElementException;
-
-import org.springframework.http.*;
-import org.springframework.web.bind.annotation.*;
-
-import com.ap.enlatados.dto.LinkedVehiculoNode;
 import com.ap.enlatados.model.Vehiculo;
 import com.ap.enlatados.service.VehiculoService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/vehiculos")
-@CrossOrigin(origins="*")
+@CrossOrigin(origins = "*")
 public class VehiculoController {
 
     private final VehiculoService svc;
@@ -22,9 +24,36 @@ public class VehiculoController {
     }
 
     @PostMapping
-    public ResponseEntity<Vehiculo> crear(@RequestBody Vehiculo v) {
-        Vehiculo saved = svc.crear(v);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<?> crear(@RequestParam String placa,
+                                   @RequestParam String marca,
+                                   @RequestParam String modelo,
+                                   @RequestParam String color,
+                                   @RequestParam int anio,
+                                   @RequestParam String transmision) {
+        svc.crear(new Vehiculo(placa, marca, modelo, color, anio, transmision));
+        return ResponseEntity.ok("Vehículo creado");
+    }
+
+    @GetMapping("/{placa}")
+    public ResponseEntity<?> buscar(@PathVariable String placa) {
+        return ResponseEntity.ok(svc.buscar(placa));
+    }
+
+    @DeleteMapping("/{placa}")
+    public ResponseEntity<?> eliminar(@PathVariable String placa) {
+        svc.eliminar(placa);
+        return ResponseEntity.ok("Vehículo eliminado");
+    }
+
+    @PutMapping("/{placa}")
+    public ResponseEntity<?> actualizar(@PathVariable String placa,
+                                        @RequestParam String marca,
+                                        @RequestParam String modelo,
+                                        @RequestParam String color,
+                                        @RequestParam int anio,
+                                        @RequestParam String transmision) {
+        svc.modificar(placa, new Vehiculo(placa, marca, modelo, color, anio, transmision));
+        return ResponseEntity.ok("Vehículo actualizado");
     }
 
     @GetMapping
@@ -32,54 +61,37 @@ public class VehiculoController {
         return svc.listar();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> obtener(@PathVariable Long id) {
-        Vehiculo v = svc.buscar(id);
-        if (v == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body("Vehículo no encontrado");
-        }
-        return ResponseEntity.ok(v);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<?> actualizar(@PathVariable Long id,
-                                        @RequestBody Vehiculo v) {
-        try {
-            Vehiculo upd = svc.actualizar(id, v);
-            return ResponseEntity.ok(upd);
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body(ex.getMessage());
+    @PostMapping("/cargar-csv")
+    public ResponseEntity<?> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))) {
+            List<String[]> registros = new ArrayList<>();
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                registros.add(linea.split(";"));
+            }
+            svc.cargarMasivo(registros);
+            return ResponseEntity.ok("Vehículos cargados");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al cargar CSV: " + e.getMessage());
         }
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminar(@PathVariable Long id) {
-        try {
-            svc.eliminar(id);
-            return ResponseEntity.noContent().build();
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body(ex.getMessage());
-        }
+    @GetMapping("/diagrama")
+    public ResponseEntity<String> obtenerDiagrama() {
+        return ResponseEntity.ok(svc.obtenerDiagramaCola());
     }
 
-    /** Extrae el siguiente vehículo (dequeue) **/
     @GetMapping("/asignar")
     public ResponseEntity<?> asignarSiguiente() {
         Vehiculo v = svc.dequeue();
-        if (v == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body("No hay vehículos disponibles");
-        }
+        if (v == null) return ResponseEntity.status(404).body("No hay vehículos disponibles");
         return ResponseEntity.ok(v);
     }
 
-    /** Devuelve la cola completa como lista enlazada de DTOs **/
-    @GetMapping("/linked")
-    public ResponseEntity<LinkedVehiculoNode> colaEnlazada() {
-        LinkedVehiculoNode head = svc.obtenerColaEnlazada();
-        return ResponseEntity.ok(head);
+    @PostMapping("/reenqueue")
+    public ResponseEntity<?> reenqueue(@RequestParam String placa) {
+        Vehiculo v = svc.buscar(placa);
+        svc.reenqueue(v);
+        return ResponseEntity.ok("Vehículo reencolado");
     }
 }

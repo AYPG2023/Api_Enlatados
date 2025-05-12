@@ -1,84 +1,79 @@
 package com.ap.enlatados.controller;
 
-import java.util.List;
-import java.util.NoSuchElementException;
-
-import org.springframework.http.*;
-import org.springframework.web.bind.annotation.*;
-
-import com.ap.enlatados.dto.ClienteNode;
 import com.ap.enlatados.model.Cliente;
 import com.ap.enlatados.service.ClienteService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/clientes")
-@CrossOrigin(origins="*")
+@CrossOrigin(origins = "*")
 public class ClienteController {
 
-    private final ClienteService svc;
+    private final ClienteService clienteService;
 
-    public ClienteController(ClienteService svc) {
-        this.svc = svc;
+    public ClienteController(ClienteService clienteService) {
+        this.clienteService = clienteService;
     }
 
     @PostMapping
-    public ResponseEntity<Cliente> crear(@RequestBody Cliente c) {
-        Cliente saved = svc.crear(c);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<?> crear(@RequestParam String dpi,
+                                   @RequestParam String nombre,
+                                   @RequestParam String apellidos,
+                                   @RequestParam String telefono) {
+        clienteService.crear(new Cliente(dpi, nombre, apellidos, telefono));
+        return ResponseEntity.ok("Cliente creado");
+    }
+
+    @GetMapping("/{dpi}")
+    public ResponseEntity<?> buscar(@PathVariable String dpi) {
+        return ResponseEntity.ok(clienteService.buscar(dpi));
+    }
+
+    @DeleteMapping("/{dpi}")
+    public ResponseEntity<?> eliminar(@PathVariable String dpi) {
+        clienteService.eliminar(dpi);
+        return ResponseEntity.ok("Cliente eliminado");
+    }
+
+    @PutMapping("/{dpi}")
+    public ResponseEntity<?> actualizar(@PathVariable String dpi,
+                                        @RequestParam String nombre,
+                                        @RequestParam String apellidos,
+                                        @RequestParam String telefono) {
+        clienteService.actualizar(dpi, new Cliente(dpi, nombre, apellidos, telefono));
+        return ResponseEntity.ok("Cliente actualizado");
     }
 
     @GetMapping
     public List<Cliente> listar() {
-        return svc.listar();
+        return clienteService.listar();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
-        Cliente c = svc.buscarPorId(id);
-        if (c == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body("Cliente no encontrado");
-        }
-        return ResponseEntity.ok(c);
-    }
-
-    @GetMapping("/dpi/{dpi}")
-    public ResponseEntity<?> obtenerPorDpi(@PathVariable String dpi) {
-        Cliente c = svc.buscarPorDpi(dpi);
-        if (c == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body("Cliente no encontrado");
-        }
-        return ResponseEntity.ok(c);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<?> actualizar(@PathVariable Long id,
-                                        @RequestBody Cliente c) {
-        try {
-            Cliente updated = svc.actualizar(id, c);
-            return ResponseEntity.ok(updated);
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body(ex.getMessage());
+    @PostMapping("/cargar-csv")
+    public ResponseEntity<?> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))) {
+            List<String[]> registros = new ArrayList<>();
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                registros.add(linea.split(";"));
+            }
+            clienteService.cargarMasivo(registros);
+            return ResponseEntity.ok("Clientes cargados");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al cargar CSV: " + e.getMessage());
         }
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminar(@PathVariable Long id) {
-        try {
-            svc.eliminar(id);
-            return ResponseEntity.noContent().build();
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body(ex.getMessage());
-        }
-    }
-
-    /** Nuevo endpoint: devuelve el árbol AVL de clientes **/
-    @GetMapping("/tree")
-    public ResponseEntity<ClienteNode> arbol() {
-        ClienteNode root = svc.obtenerArbolClientes();
-        return ResponseEntity.ok(root);
+    @GetMapping("/diagrama")
+    public ResponseEntity<String> obtenerDiagrama() {
+        return ResponseEntity.ok(clienteService.obtenerDiagramaAVL());
     }
 }

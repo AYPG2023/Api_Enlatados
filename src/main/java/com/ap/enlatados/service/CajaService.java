@@ -1,89 +1,58 @@
 package com.ap.enlatados.service;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import jakarta.annotation.PostConstruct;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.ap.enlatados.dto.CajaNode;
 import com.ap.enlatados.model.Caja;
-import com.ap.enlatados.repository.CajaRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
 @Service
-@Transactional
 public class CajaService {
+    private Stack<Caja> pilaCajas = new Stack<>();
+    private Long nextId = 1L;
 
-    private static class Node {
-        Caja data; Node next;
-        Node(Caja c){ data=c; }
+    /** Agregar una nueva caja (push) */
+    public Caja agregarCaja() {
+        Caja nueva = new Caja(nextId++);
+        pilaCajas.push(nueva);
+        return nueva;
     }
 
-    private Node top;
-    private final CajaRepository repo;
-
-    public CajaService(CajaRepository repo) {
-        this.repo = repo;
-    }
-
-    @PostConstruct
-    private void init() {
-        // cargar todo en la pila (orden cronológico ascendente)
-        List<Caja> all = repo.findAll();
-        all.sort(Comparator.comparing(Caja::getId));
-        all.forEach(this::pushNode);
-    }
-
-    // Push
-    public Caja crear() {
-        Caja c = new Caja();
-        c.setFechaIngreso(LocalDateTime.now().toString());
-        Caja saved = repo.save(c);
-        pushNode(saved);
-        return saved;
-    }
-
-    // Pop
-    public Caja extraer() {
-        if (top == null) return null;
-        Caja c = top.data;
-        top = top.next;
-        repo.deleteById(c.getId());
-        return c;
-    }
-
-    // Listar sin modificar la pila
-    public List<Caja> listar() {
-        List<Caja> out = new ArrayList<>();
-        Node t = top;
-        while (t != null) {
-            out.add(t.data);
-            t = t.next;
+    /** Extraer la caja superior (pop) */
+    public Caja extraerCaja() {
+        if (pilaCajas.isEmpty()) {
+            return null;
         }
-        return out;
+        return pilaCajas.pop();
     }
 
-    // Interno
-    private void pushNode(Caja c) {
-        Node n = new Node(c);
-        n.next = top;
-        top = n;
-    }
-    
-    /**
-     * Expone la pila interna de cajas como una lista enlazada de DTOs.
-     */
-    public CajaNode obtenerPilaEnlazada() {
-        return toDtoNode(top);
+    /** Listar todas las cajas (sin modificar pila) */
+    public List<Caja> listarCajas() {
+        return new ArrayList<>(pilaCajas);
     }
 
-    private CajaNode toDtoNode(Node n) {
-        if (n == null) return null;
-        CajaNode dto = new CajaNode();
-        dto.id            = n.data.getId();
-        dto.fechaIngreso  = n.data.getFechaIngreso();
-        dto.next          = toDtoNode(n.next);
-        return dto;
+    /** Cargar desde CSV (ID manual) */
+    public int cargarDesdeCsv(List<String[]> registros) {
+        int contador = 0;
+        for (String[] linea : registros) {
+            if (linea.length != 1) continue;
+            Long id = Long.parseLong(linea[0].trim());
+            pilaCajas.push(new Caja(id));
+            if (id >= nextId) nextId = id + 1;
+            contador++;
+        }
+        return contador;
+    }
+
+    /** Generar diagrama de la pila estilo texto */
+    public String obtenerDiagramaPila() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = pilaCajas.size() - 1; i >= 0; i--) {
+            Caja c = pilaCajas.get(i);
+            sb.append("[").append(c.getId()).append("] -> ");
+        }
+        sb.append("NULL");
+        return sb.toString();
     }
 }

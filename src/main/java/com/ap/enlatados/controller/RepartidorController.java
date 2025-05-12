@@ -1,18 +1,20 @@
 package com.ap.enlatados.controller;
 
-import java.util.List;
-import java.util.NoSuchElementException;
-
-import org.springframework.http.*;
-import org.springframework.web.bind.annotation.*;
-
-import com.ap.enlatados.dto.RepartidorNode;
 import com.ap.enlatados.model.Repartidor;
 import com.ap.enlatados.service.RepartidorService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/repartidores")
-@CrossOrigin(origins="*")
+@CrossOrigin(origins = "*")
 public class RepartidorController {
 
     private final RepartidorService svc;
@@ -22,9 +24,34 @@ public class RepartidorController {
     }
 
     @PostMapping
-    public ResponseEntity<Repartidor> crear(@RequestBody Repartidor r) {
-        Repartidor saved = svc.crear(r);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<?> crear(@RequestParam String dpi,
+                                   @RequestParam String nombre,
+                                   @RequestParam String apellidos,
+                                   @RequestParam String licencia,
+                                   @RequestParam String telefono) {
+        svc.crear(new Repartidor(dpi, nombre, apellidos, licencia, telefono));
+        return ResponseEntity.ok("Repartidor creado");
+    }
+
+    @GetMapping("/{dpi}")
+    public ResponseEntity<?> buscar(@PathVariable String dpi) {
+        return ResponseEntity.ok(svc.buscar(dpi));
+    }
+
+    @DeleteMapping("/{dpi}")
+    public ResponseEntity<?> eliminar(@PathVariable String dpi) {
+        svc.eliminar(dpi);
+        return ResponseEntity.ok("Repartidor eliminado");
+    }
+
+    @PutMapping("/{dpi}")
+    public ResponseEntity<?> actualizar(@PathVariable String dpi,
+                                        @RequestParam String nombre,
+                                        @RequestParam String apellidos,
+                                        @RequestParam String licencia,
+                                        @RequestParam String telefono) {
+        svc.modificar(dpi, new Repartidor(dpi, nombre, apellidos, licencia, telefono));
+        return ResponseEntity.ok("Repartidor actualizado");
     }
 
     @GetMapping
@@ -32,54 +59,37 @@ public class RepartidorController {
         return svc.listar();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> obtener(@PathVariable Long id) {
-        Repartidor r = svc.buscar(id);
-        if (r == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body("Repartidor no encontrado");
-        }
-        return ResponseEntity.ok(r);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<?> actualizar(@PathVariable Long id,
-                                        @RequestBody Repartidor r) {
-        try {
-            Repartidor upd = svc.actualizar(id, r);
-            return ResponseEntity.ok(upd);
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body(ex.getMessage());
+    @PostMapping("/cargar-csv")
+    public ResponseEntity<?> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))) {
+            List<String[]> registros = new ArrayList<>();
+            String linea;
+            while ((linea = br.readLine()) != null) {
+                registros.add(linea.split(";"));
+            }
+            svc.cargarMasivo(registros);
+            return ResponseEntity.ok("Repartidores cargados");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al cargar CSV: " + e.getMessage());
         }
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminar(@PathVariable Long id) {
-        try {
-            svc.eliminar(id);
-            return ResponseEntity.noContent().build();
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body(ex.getMessage());
-        }
+    @GetMapping("/diagrama")
+    public ResponseEntity<String> obtenerDiagrama() {
+        return ResponseEntity.ok(svc.obtenerDiagramaCola());
     }
 
-    /** Extrae el siguiente repartidor (dequeue) **/
     @GetMapping("/asignar")
     public ResponseEntity<?> asignarSiguiente() {
         Repartidor r = svc.dequeue();
-        if (r == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                 .body("No hay repartidores disponibles");
-        }
+        if (r == null) return ResponseEntity.status(404).body("No hay repartidores disponibles");
         return ResponseEntity.ok(r);
     }
 
-    /** Devuelve la cola completa como lista enlazada de DTOs **/
-    @GetMapping("/linked")
-    public ResponseEntity<RepartidorNode> colaEnlazada() {
-        RepartidorNode head = svc.obtenerColaEnlazada();
-        return ResponseEntity.ok(head);
+    @PostMapping("/reenqueue")
+    public ResponseEntity<?> reenqueue(@RequestParam String dpi) {
+        Repartidor r = svc.buscar(dpi);
+        svc.reenqueue(r);
+        return ResponseEntity.ok("Repartidor reencolado");
     }
 }

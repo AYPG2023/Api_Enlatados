@@ -1,100 +1,106 @@
 package com.ap.enlatados.service;
 
+import com.ap.enlatados.model.Usuario;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Optional;
-
-import jakarta.annotation.PostConstruct;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.ap.enlatados.dto.UsuarioNode;
-import com.ap.enlatados.model.Usuario;
-import com.ap.enlatados.repository.UsuarioRepository;
 
 @Service
-@Transactional
 public class UsuarioService {
 
-    // Nodo interno para la lista enlazada
-    private static class UsuarioNodeInternal {
+    private static class UsuarioNode {
         Usuario data;
-        UsuarioNodeInternal next;
-        UsuarioNodeInternal(Usuario u) { this.data = u; }
+        UsuarioNode next;
+        UsuarioNode(Usuario u) { this.data = u; }
     }
 
-    private UsuarioNodeInternal head;
-    private final UsuarioRepository repo;
+    private UsuarioNode head;
+    private Long nextId = 1L;
+    private Usuario usuarioLogueado = null;
 
-    public UsuarioService(UsuarioRepository repo) {
-        this.repo = repo;
+    public Usuario registrar(String nombre, String apellidos, String email, String password) {
+        // Validación de email único
+        UsuarioNode t = head;
+        while (t != null) {
+            if (t.data.getEmail().equalsIgnoreCase(email)) {
+                throw new IllegalArgumentException("El email ya está registrado");
+            }
+            t = t.next;
+        }
+        Usuario nuevo = new Usuario(nextId++, nombre, apellidos, email, password);
+        insertarEnLista(nuevo);
+        return nuevo;
     }
-
-    @PostConstruct
-    private void init() {
-        // carga inicial desde BD
-        repo.findAll().forEach(this::insertarEnLista);
-    }
-
-    /** Crear + push a la lista enlazada */
-    public Usuario crear(Usuario u) {
-        Usuario saved = repo.save(u);
-        insertarEnLista(saved);
-        return saved;
-    }
-
-    /** Listar desde BD */
-    public List<Usuario> listar() {
-        return repo.findAll();
-    }
-
-    /** Buscar en BD */
-    public Optional<Usuario> buscar(Long id) {
-        return repo.findById(id);
-    }
-
-    /** Actualizar + conserva posición en lista */
-    public Usuario actualizar(Long id, Usuario u) {
-        return repo.findById(id)
-            .map(existing -> {
-                existing.setNombre(u.getNombre());
-                existing.setApellidos(u.getApellidos());
-                existing.setPassword(u.getPassword());
-                existing.setEmail(u.getEmail());
-                return repo.save(existing);
-            })
-            .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
-    }
-
-    /** Eliminar BD + pop de la lista */
-    public void eliminar(Long id) {
-        repo.deleteById(id);
-        eliminarDeLista(id);
-    }
-
-    // -----------------------
-    // manejo de lista enlazada
-    // -----------------------
 
     private void insertarEnLista(Usuario u) {
-        UsuarioNodeInternal n = new UsuarioNodeInternal(u);
+        UsuarioNode node = new UsuarioNode(u);
         if (head == null) {
-            head = n;
+            head = node;
         } else {
-            UsuarioNodeInternal t = head;
+            UsuarioNode t = head;
             while (t.next != null) t = t.next;
-            t.next = n;
+            t.next = node;
         }
     }
 
-    private void eliminarDeLista(Long id) {
+    public List<Usuario> listar() {
+        List<Usuario> usuarios = new ArrayList<>();
+        UsuarioNode t = head;
+        while (t != null) {
+            usuarios.add(t.data);
+            t = t.next;
+        }
+        return usuarios;
+    }
+
+    public Usuario buscarPorId(Long id) {
+        UsuarioNode t = head;
+        while (t != null) {
+            if (t.data.getId().equals(id)) return t.data;
+            t = t.next;
+        }
+        throw new NoSuchElementException("Usuario no encontrado");
+    }
+
+    public Usuario buscarPorEmail(String email) {
+        UsuarioNode t = head;
+        while (t != null) {
+            if (t.data.getEmail().equalsIgnoreCase(email)) return t.data;
+            t = t.next;
+        }
+        throw new NoSuchElementException("Usuario no encontrado");
+    }
+
+    public Usuario iniciarSesion(String email, String password) {
+        UsuarioNode t = head;
+        while (t != null) {
+            if (t.data.getEmail().equalsIgnoreCase(email) && t.data.getPassword().equals(password)) {
+                usuarioLogueado = t.data;
+                return t.data;
+            }
+            t = t.next;
+        }
+        throw new NoSuchElementException("Credenciales inválidas");
+    }
+
+    public void cerrarSesion() {
+        usuarioLogueado = null;
+    }
+
+    public Usuario obtenerPerfilActual() {
+        if (usuarioLogueado == null) throw new NoSuchElementException("No hay usuario logueado");
+        return usuarioLogueado;
+    }
+
+    public void eliminar(Long id) {
         if (head == null) return;
         if (head.data.getId().equals(id)) {
             head = head.next;
             return;
         }
-        UsuarioNodeInternal t = head;
+        UsuarioNode t = head;
         while (t.next != null) {
             if (t.next.data.getId().equals(id)) {
                 t.next = t.next.next;
@@ -104,23 +110,10 @@ public class UsuarioService {
         }
     }
 
-    // -------------------------------------------------
-    // NUEVO: exponer lista enlazada como DTO recursivo
-    // -------------------------------------------------
-
-    /** Devuelve la cabeza de la lista enlazada como DTO */
-    public UsuarioNode obtenerListaEnlazada() {
-        return toDto(head);
-    }
-
-    private UsuarioNode toDto(UsuarioNodeInternal n) {
-        if (n == null) return null;
-        UsuarioNode dto = new UsuarioNode();
-        dto.id        = n.data.getId();
-        dto.nombre    = n.data.getNombre();
-        dto.apellidos = n.data.getApellidos();
-        dto.email     = n.data.getEmail();
-        dto.next      = toDto(n.next);
-        return dto;
+    public Usuario crearConId(Long id, String nombre, String apellidos, String email, String password) {
+        Usuario nuevo = new Usuario(id, nombre, apellidos, email, password);
+        insertarEnLista(nuevo);
+        if (id >= nextId) nextId = id + 1;
+        return nuevo;
     }
 }

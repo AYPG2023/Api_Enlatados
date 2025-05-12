@@ -1,14 +1,12 @@
 package com.ap.enlatados.model;
 
-import java.time.LocalDateTime;
-
-public class Caja {
+public class CajaPedido {
     private Long id;
     private String fechaIngreso;
 
-    public Caja(Long id) {
+    public CajaPedido(Long id, String fechaIngreso) {
         this.id = id;
-        this.fechaIngreso = LocalDateTime.now().toString();
+        this.fechaIngreso = fechaIngreso;
     }
 
     public Long getId() {
