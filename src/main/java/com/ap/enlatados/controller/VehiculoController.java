@@ -24,14 +24,15 @@ public class VehiculoController {
     }
 
     @PostMapping
-    public ResponseEntity<?> crear(@RequestParam String placa,
-                                   @RequestParam String marca,
-                                   @RequestParam String modelo,
-                                   @RequestParam String color,
-                                   @RequestParam int anio,
-                                   @RequestParam String transmision) {
-        svc.crear(new Vehiculo(placa, marca, modelo, color, anio, transmision));
+    public ResponseEntity<?> crear(@RequestBody Vehiculo vehiculo) {
+        svc.crear(vehiculo);
         return ResponseEntity.ok("Vehículo creado");
+    }
+
+    @PutMapping("/{placa}")
+    public ResponseEntity<?> actualizar(@PathVariable String placa, @RequestBody Vehiculo vehiculo) {
+        svc.modificar(placa, vehiculo);
+        return ResponseEntity.ok("Vehículo actualizado");
     }
 
     @GetMapping("/{placa}")
@@ -43,17 +44,6 @@ public class VehiculoController {
     public ResponseEntity<?> eliminar(@PathVariable String placa) {
         svc.eliminar(placa);
         return ResponseEntity.ok("Vehículo eliminado");
-    }
-
-    @PutMapping("/{placa}")
-    public ResponseEntity<?> actualizar(@PathVariable String placa,
-                                        @RequestParam String marca,
-                                        @RequestParam String modelo,
-                                        @RequestParam String color,
-                                        @RequestParam int anio,
-                                        @RequestParam String transmision) {
-        svc.modificar(placa, new Vehiculo(placa, marca, modelo, color, anio, transmision));
-        return ResponseEntity.ok("Vehículo actualizado");
     }
 
     @GetMapping

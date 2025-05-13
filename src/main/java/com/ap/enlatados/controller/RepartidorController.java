@@ -24,13 +24,15 @@ public class RepartidorController {
     }
 
     @PostMapping
-    public ResponseEntity<?> crear(@RequestParam String dpi,
-                                   @RequestParam String nombre,
-                                   @RequestParam String apellidos,
-                                   @RequestParam String licencia,
-                                   @RequestParam String telefono) {
-        svc.crear(new Repartidor(dpi, nombre, apellidos, licencia, telefono));
+    public ResponseEntity<?> crear(@RequestBody Repartidor repartidor) {
+        svc.crear(repartidor);
         return ResponseEntity.ok("Repartidor creado");
+    }
+
+    @PutMapping("/{dpi}")
+    public ResponseEntity<?> actualizar(@PathVariable String dpi, @RequestBody Repartidor repartidor) {
+        svc.modificar(dpi, repartidor);
+        return ResponseEntity.ok("Repartidor actualizado");
     }
 
     @GetMapping("/{dpi}")
@@ -42,16 +44,6 @@ public class RepartidorController {
     public ResponseEntity<?> eliminar(@PathVariable String dpi) {
         svc.eliminar(dpi);
         return ResponseEntity.ok("Repartidor eliminado");
-    }
-
-    @PutMapping("/{dpi}")
-    public ResponseEntity<?> actualizar(@PathVariable String dpi,
-                                        @RequestParam String nombre,
-                                        @RequestParam String apellidos,
-                                        @RequestParam String licencia,
-                                        @RequestParam String telefono) {
-        svc.modificar(dpi, new Repartidor(dpi, nombre, apellidos, licencia, telefono));
-        return ResponseEntity.ok("Repartidor actualizado");
     }
 
     @GetMapping

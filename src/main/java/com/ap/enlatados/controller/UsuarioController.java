@@ -15,7 +15,7 @@ import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:8081", allowCredentials = "true")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
@@ -25,12 +25,11 @@ public class UsuarioController {
     }
 
     @PostMapping("/registrar")
-    public ResponseEntity<?> registrarUsuario(@RequestParam String nombre,
-                                              @RequestParam String apellidos,
-                                              @RequestParam String email,
-                                              @RequestParam String password) {
+    public ResponseEntity<?> registrarUsuario(@RequestBody Usuario usuario) {
         try {
-            Usuario nuevo = usuarioService.registrar(nombre, apellidos, email, password);
+            Usuario nuevo = usuarioService.registrar(
+                usuario.getNombre(), usuario.getApellidos(), usuario.getEmail(), usuario.getPassword()
+            );
             return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
@@ -38,10 +37,9 @@ public class UsuarioController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> iniciarSesion(@RequestParam String email,
-                                           @RequestParam String password) {
+    public ResponseEntity<?> iniciarSesion(@RequestBody Usuario usuario) {
         try {
-            Usuario u = usuarioService.iniciarSesion(email, password);
+            Usuario u = usuarioService.iniciarSesion(usuario.getEmail(), usuario.getPassword());
             return ResponseEntity.ok("Inicio de sesión exitoso. Bienvenido: " + u.getNombre());
         } catch (NoSuchElementException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas");

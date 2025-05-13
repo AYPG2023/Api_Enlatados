@@ -14,7 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/clientes")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:8081")
 public class ClienteController {
 
     private final ClienteService clienteService;
@@ -27,6 +27,12 @@ public class ClienteController {
     public ResponseEntity<?> crear(@RequestBody Cliente c) {
         clienteService.crear(c);
         return ResponseEntity.ok("Cliente creado");
+    }
+    
+    @PostMapping("/clientes/batch")
+    public ResponseEntity<?> createClientesBatch(@RequestBody List<Cliente> clientes) {
+        // Lógica para guardar múltiples clientes
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{dpi}")

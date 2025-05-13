@@ -15,6 +15,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pedidos")
@@ -33,21 +34,30 @@ public class PedidoController {
         this.vehiculoService = vehiculoService;
     }
 
+    /** Crear Pedido con JSON */
     @PostMapping
-    public ResponseEntity<?> crearPedido(@RequestParam String deptoOrigen,
-                                         @RequestParam String deptoDestino,
-                                         @RequestParam String dpiCliente) {
-        Pedido p = pedidoService.crearPedido(deptoOrigen, deptoDestino,
+    public ResponseEntity<?> crearPedido(@RequestBody Map<String, String> datos) {
+        String deptoOrigen = datos.get("deptoOrigen");
+        String deptoDestino = datos.get("deptoDestino");
+        String dpiCliente = datos.get("dpiCliente");
+
+        Pedido p = pedidoService.crearPedido(
+                deptoOrigen,
+                deptoDestino,
                 clienteService.buscar(dpiCliente),
                 repartidorService.dequeue(),
-                vehiculoService.dequeue());
+                vehiculoService.dequeue()
+        );
         return ResponseEntity.ok(p);
     }
 
+    /** Agregar Caja al Pedido por JSON */
     @PostMapping("/agregar-caja")
-    public ResponseEntity<?> agregarCaja(@RequestParam long numeroPedido,
-                                         @RequestParam long idCaja,
-                                         @RequestParam String fechaIngreso) {
+    public ResponseEntity<?> agregarCaja(@RequestBody Map<String, String> datos) {
+        long numeroPedido = Long.parseLong(datos.get("numeroPedido"));
+        long idCaja = Long.parseLong(datos.get("idCaja"));
+        String fechaIngreso = datos.get("fechaIngreso");
+
         pedidoService.agregarCajaAlPedido(numeroPedido, new CajaPedido(idCaja, fechaIngreso));
         return ResponseEntity.ok("Caja agregada al pedido");
     }
