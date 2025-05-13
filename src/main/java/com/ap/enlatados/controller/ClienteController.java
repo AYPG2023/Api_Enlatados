@@ -24,32 +24,23 @@ public class ClienteController {
     }
 
     @PostMapping
-    public ResponseEntity<?> crear(@RequestParam String dpi,
-                                   @RequestParam String nombre,
-                                   @RequestParam String apellidos,
-                                   @RequestParam String telefono) {
-        clienteService.crear(new Cliente(dpi, nombre, apellidos, telefono));
+    public ResponseEntity<?> crear(@RequestBody Cliente c) {
+        clienteService.crear(c);
         return ResponseEntity.ok("Cliente creado");
     }
 
-    @GetMapping("/{dpi}")
-    public ResponseEntity<?> buscar(@PathVariable String dpi) {
-        return ResponseEntity.ok(clienteService.buscar(dpi));
+    @PutMapping("/{dpi}")
+    public ResponseEntity<?> actualizar(@PathVariable String dpi,
+                                        @RequestBody Cliente c) {
+        clienteService.actualizar(dpi, c);
+        return ResponseEntity.ok("Cliente actualizado");
     }
+
 
     @DeleteMapping("/{dpi}")
     public ResponseEntity<?> eliminar(@PathVariable String dpi) {
         clienteService.eliminar(dpi);
         return ResponseEntity.ok("Cliente eliminado");
-    }
-
-    @PutMapping("/{dpi}")
-    public ResponseEntity<?> actualizar(@PathVariable String dpi,
-                                        @RequestParam String nombre,
-                                        @RequestParam String apellidos,
-                                        @RequestParam String telefono) {
-        clienteService.actualizar(dpi, new Cliente(dpi, nombre, apellidos, telefono));
-        return ResponseEntity.ok("Cliente actualizado");
     }
 
     @GetMapping

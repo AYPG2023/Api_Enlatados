@@ -127,8 +127,8 @@ public class ClienteService {
 
     public void cargarMasivo(List<String[]> datos) {
         for (String[] linea : datos) {
-            if (linea.length != 4) continue;
-            crear(new Cliente(linea[0].trim(), linea[1].trim(), linea[2].trim(), linea[3].trim()));
+            if (linea.length != 5) continue;
+            crear(new Cliente(linea[0].trim(), linea[1].trim(), linea[2].trim(), linea[3].trim(), linea[4].trim()));
         }
     }
 
@@ -142,7 +142,8 @@ public class ClienteService {
     private void diagramaAVL(NodoAVL node, StringBuilder sb, int nivel) {
         if (node == null) return;
         diagramaAVL(node.right, sb, nivel + 1);
-        sb.append("   ".repeat(nivel)).append(node.data.getDpi()).append("\n");
+        sb.append("   ".repeat(nivel)).append(node.data.getDpi())
+          .append(" (").append(node.data.getDireccion()).append(")").append("\n");
         diagramaAVL(node.left, sb, nivel + 1);
     }
 }
