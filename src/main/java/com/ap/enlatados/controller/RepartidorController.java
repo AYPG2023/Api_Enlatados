@@ -25,21 +25,22 @@ public class RepartidorController {
 
     /** Crear repartidor con JSON */
     @PostMapping(
-      consumes = MediaType.APPLICATION_JSON_VALUE,
-      produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<Repartidor> crear(@RequestBody @Valid RepartidorDTO dto) {
-        Repartidor r = new Repartidor(
-            dto.getDpi(),
-            dto.getNombre(),
-            dto.getApellidos(),
-            dto.getLicencia(),
-            dto.getTelefono()
-        );
-        svc.crear(r);
-        return ResponseEntity.status(HttpStatus.CREATED).body(r);
-    }
-
+    		  consumes = MediaType.APPLICATION_JSON_VALUE,
+    		  produces = MediaType.APPLICATION_JSON_VALUE
+    		)
+    		public ResponseEntity<Repartidor> crear(@RequestBody @Valid RepartidorDTO dto) {
+    		    Repartidor r = new Repartidor(
+    		        dto.getDpi(),
+    		        dto.getNombre(),
+    		        dto.getApellidos(),
+    		        dto.getTipoLicencia(),
+    		        dto.getNumeroLicencia(),
+    		        dto.getTelefono()
+    		    );
+    		    svc.crear(r);
+    		    return ResponseEntity.status(HttpStatus.CREATED).body(r);
+    		}
+    
     /** Buscar por DPI */
     @GetMapping(value = "/{dpi}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Repartidor> buscar(@PathVariable String dpi) {
@@ -60,7 +61,8 @@ public class RepartidorController {
             dto.getDpi(),
             dto.getNombre(),
             dto.getApellidos(),
-            dto.getLicencia(),
+            dto.getTipoLicencia(),
+            dto.getNumeroLicencia(), 
             dto.getTelefono()
         );
         svc.modificar(dpi, nuevo);

@@ -90,11 +90,17 @@ public class RepartidorService {
     /** Cargar desde CSV */
     public void cargarMasivo(List<String[]> datos) {
         for (String[] linea : datos) {
-            if (linea.length != 5) continue;
-            crear(new Repartidor(linea[0].trim(), linea[1].trim(), linea[2].trim(), linea[3].trim(), linea[4].trim()));
+            if (linea.length != 6) continue;
+            crear(new Repartidor(
+                linea[0].trim(), // dpi
+                linea[1].trim(), // nombre
+                linea[2].trim(), // apellidos
+                linea[3].trim(), // tipoLicencia
+                linea[4].trim(), // numeroLicencia
+                linea[5].trim()  // telefono
+            ));
         }
     }
-
     /** Diagrama textual de la cola */
     public String obtenerDiagramaCola() {
         StringBuilder sb = new StringBuilder();
