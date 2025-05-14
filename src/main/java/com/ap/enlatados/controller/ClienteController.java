@@ -1,16 +1,17 @@
+// src/main/java/com/ap/enlatados/controller/ClienteController.java
 package com.ap.enlatados.controller;
 
+import com.ap.enlatados.dto.ClienteDTO;
 import com.ap.enlatados.model.Cliente;
 import com.ap.enlatados.service.ClienteService;
-import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -23,48 +24,90 @@ public class ClienteController {
         this.clienteService = clienteService;
     }
 
-    @PostMapping
-    public ResponseEntity<?> crear(@RequestBody Cliente c) {
+    /** Crear cliente recibiendo JSON */
+    @PostMapping(
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<Cliente> crear(@RequestBody @Valid ClienteDTO dto) {
+        Cliente c = new Cliente(
+            dto.getDpi(),
+            dto.getNombre(),
+            dto.getApellidos(),
+            dto.getTelefono(),
+            dto.getDireccion()
+        );
         clienteService.crear(c);
-        return ResponseEntity.ok("Cliente creado");
+        return ResponseEntity.status(HttpStatus.CREATED).body(c);
     }
 
-    @PutMapping("/{dpi}")
-    public ResponseEntity<?> actualizar(@PathVariable String dpi,
-                                        @RequestBody Cliente c) {
-        clienteService.actualizar(dpi, c);
-        return ResponseEntity.ok("Cliente actualizado");
+    /** Actualizar cliente por DPI recibiendo JSON */
+    @PutMapping(
+      path = "/{dpi}",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<Cliente> actualizar(
+        @PathVariable String dpi,
+        @RequestBody @Valid ClienteDTO dto
+    ) {
+        Cliente actualizado = new Cliente(
+            dto.getDpi(),
+            dto.getNombre(),
+            dto.getApellidos(),
+            dto.getTelefono(),
+            dto.getDireccion()
+        );
+        clienteService.actualizar(dpi, actualizado);
+        return ResponseEntity.ok(actualizado);
     }
 
-
+    /** Eliminar cliente por DPI */
     @DeleteMapping("/{dpi}")
-    public ResponseEntity<?> eliminar(@PathVariable String dpi) {
+    public ResponseEntity<Void> eliminar(@PathVariable String dpi) {
         clienteService.eliminar(dpi);
-        return ResponseEntity.ok("Cliente eliminado");
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping
+    /** Listar todos los clientes */
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Cliente> listar() {
         return clienteService.listar();
     }
 
-    @PostMapping("/cargar-csv")
-    public ResponseEntity<?> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))) {
+    /**
+     * Carga masiva desde CSV (cada línea: dpi;nombre;apellidos;telefono;direccion)
+     * Retorna texto plano con total cargado.
+     */
+    @PostMapping(
+      path = "/cargar-csv",
+      consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+      produces = MediaType.TEXT_PLAIN_VALUE
+    )
+    public ResponseEntity<String> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
+        try (BufferedReader br = new BufferedReader(
+                 new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))
+        ) {
             List<String[]> registros = new ArrayList<>();
             String linea;
             while ((linea = br.readLine()) != null) {
                 registros.add(linea.split(";"));
             }
             clienteService.cargarMasivo(registros);
-            return ResponseEntity.ok("Clientes cargados");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al cargar CSV: " + e.getMessage());
+            return ResponseEntity.ok("Clientes cargados desde CSV");
+        } catch (IOException e) {
+            return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body("Error al procesar CSV: " + e.getMessage());
         }
     }
 
-    @GetMapping("/diagrama")
-    public ResponseEntity<String> obtenerDiagrama() {
-        return ResponseEntity.ok(clienteService.obtenerDiagramaAVL());
+    /** Devuelve diagrama textual del AVL en texto plano */
+    @GetMapping(
+      path = "/diagrama",
+      produces = MediaType.TEXT_PLAIN_VALUE
+    )
+    public String obtenerDiagrama() {
+        return clienteService.obtenerDiagramaAVL();
     }
 }

@@ -1,0 +1,39 @@
+package com.ap.enlatados.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+public class RepartidorDTO {
+    @NotBlank @Size(min = 8, max = 20)
+    private String dpi;
+
+    @NotBlank @Size(min = 2, max = 50)
+    private String nombre;
+
+    @NotBlank @Size(min = 2, max = 50)
+    private String apellidos;
+
+    @NotBlank @Size(min = 5, max = 20)
+    private String licencia;
+
+    @NotBlank
+    @Pattern(regexp = "\\+?\\d{8,15}", message = "Teléfono debe ser un número de 8 a 15 dígitos, opcional +")
+    private String telefono;
+
+    public RepartidorDTO() {}
+
+    // Getters
+    public String getDpi() { return dpi; }
+    public String getNombre() { return nombre; }
+    public String getApellidos() { return apellidos; }
+    public String getLicencia() { return licencia; }
+    public String getTelefono() { return telefono; }
+
+    // Setters
+    public void setDpi(String dpi) { this.dpi = dpi; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+    public void setApellidos(String apellidos) { this.apellidos = apellidos; }
+    public void setLicencia(String licencia) { this.licencia = licencia; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+}

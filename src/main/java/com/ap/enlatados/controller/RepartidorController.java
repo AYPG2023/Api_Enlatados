@@ -1,16 +1,16 @@
 package com.ap.enlatados.controller;
 
+import com.ap.enlatados.dto.RepartidorDTO;
 import com.ap.enlatados.model.Repartidor;
 import com.ap.enlatados.service.RepartidorService;
-import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/repartidores")
@@ -23,71 +23,106 @@ public class RepartidorController {
         this.svc = svc;
     }
 
-    @PostMapping
-    public ResponseEntity<?> crear(@RequestParam String dpi,
-                                   @RequestParam String nombre,
-                                   @RequestParam String apellidos,
-                                   @RequestParam String licencia,
-                                   @RequestParam String telefono) {
-        svc.crear(new Repartidor(dpi, nombre, apellidos, licencia, telefono));
-        return ResponseEntity.ok("Repartidor creado");
+    /** Crear repartidor con JSON */
+    @PostMapping(
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<Repartidor> crear(@RequestBody @Valid RepartidorDTO dto) {
+        Repartidor r = new Repartidor(
+            dto.getDpi(),
+            dto.getNombre(),
+            dto.getApellidos(),
+            dto.getLicencia(),
+            dto.getTelefono()
+        );
+        svc.crear(r);
+        return ResponseEntity.status(HttpStatus.CREATED).body(r);
     }
 
-    @GetMapping("/{dpi}")
-    public ResponseEntity<?> buscar(@PathVariable String dpi) {
+    /** Buscar por DPI */
+    @GetMapping(value = "/{dpi}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Repartidor> buscar(@PathVariable String dpi) {
         return ResponseEntity.ok(svc.buscar(dpi));
     }
 
+    /** Actualizar (reemplazo completo) por JSON */
+    @PutMapping(
+      path = "/{dpi}",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<Repartidor> actualizar(
+        @PathVariable String dpi,
+        @RequestBody @Valid RepartidorDTO dto
+    ) {
+        Repartidor nuevo = new Repartidor(
+            dto.getDpi(),
+            dto.getNombre(),
+            dto.getApellidos(),
+            dto.getLicencia(),
+            dto.getTelefono()
+        );
+        svc.modificar(dpi, nuevo);
+        return ResponseEntity.ok(nuevo);
+    }
+
+    /** Eliminar por DPI */
     @DeleteMapping("/{dpi}")
-    public ResponseEntity<?> eliminar(@PathVariable String dpi) {
+    public ResponseEntity<Void> eliminar(@PathVariable String dpi) {
         svc.eliminar(dpi);
-        return ResponseEntity.ok("Repartidor eliminado");
+        return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{dpi}")
-    public ResponseEntity<?> actualizar(@PathVariable String dpi,
-                                        @RequestParam String nombre,
-                                        @RequestParam String apellidos,
-                                        @RequestParam String licencia,
-                                        @RequestParam String telefono) {
-        svc.modificar(dpi, new Repartidor(dpi, nombre, apellidos, licencia, telefono));
-        return ResponseEntity.ok("Repartidor actualizado");
-    }
-
-    @GetMapping
+    /** Listar todos */
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Repartidor> listar() {
         return svc.listar();
     }
 
-    @PostMapping("/cargar-csv")
-    public ResponseEntity<?> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))) {
+    /** Carga masiva desde CSV */
+    @PostMapping(
+      path = "/cargar-csv",
+      consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<String> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
+        try (BufferedReader br = new BufferedReader(
+                 new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))
+        ) {
             List<String[]> registros = new ArrayList<>();
             String linea;
             while ((linea = br.readLine()) != null) {
                 registros.add(linea.split(";"));
             }
             svc.cargarMasivo(registros);
-            return ResponseEntity.ok("Repartidores cargados");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al cargar CSV: " + e.getMessage());
+            return ResponseEntity.ok("Repartidores cargados desde CSV");
+        } catch (IOException e) {
+            return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body("Error al procesar CSV: " + e.getMessage());
         }
     }
 
-    @GetMapping("/diagrama")
-    public ResponseEntity<String> obtenerDiagrama() {
-        return ResponseEntity.ok(svc.obtenerDiagramaCola());
+    /** Diagrama textual de la cola */
+    @GetMapping(value = "/diagrama", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String obtenerDiagrama() {
+        return svc.obtenerDiagramaCola();
     }
 
-    @GetMapping("/asignar")
+    /** Asignar (dequeue) siguiente repartidor */
+    @PostMapping(value = "/asignar", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> asignarSiguiente() {
         Repartidor r = svc.dequeue();
-        if (r == null) return ResponseEntity.status(404).body("No hay repartidores disponibles");
+        if (r == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body("No hay repartidores disponibles");
+        }
         return ResponseEntity.ok(r);
     }
 
+    /** Reencolar repartidor existente por DPI */
     @PostMapping("/reenqueue")
-    public ResponseEntity<?> reenqueue(@RequestParam String dpi) {
+    public ResponseEntity<String> reenqueue(@RequestParam String dpi) {
         Repartidor r = svc.buscar(dpi);
         svc.reenqueue(r);
         return ResponseEntity.ok("Repartidor reencolado");
