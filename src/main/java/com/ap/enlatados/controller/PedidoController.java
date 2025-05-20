@@ -1,21 +1,14 @@
 package com.ap.enlatados.controller;
 
-import com.ap.enlatados.dto.CajaPedidoDTO;
 import com.ap.enlatados.dto.PedidoDTO;
-import com.ap.enlatados.dto.AsignarPedidoDTO;
-import com.ap.enlatados.model.CajaPedido;
 import com.ap.enlatados.model.Pedido;
-import com.ap.enlatados.service.ClienteService;
 import com.ap.enlatados.service.PedidoService;
-import com.ap.enlatados.service.RepartidorService;
-import com.ap.enlatados.service.VehiculoService;
 import jakarta.validation.Valid;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,41 +19,28 @@ import java.util.List;
 public class PedidoController {
 
     private final PedidoService pedidoService;
-    private final ClienteService clienteService;
-    private final RepartidorService repartidorService;
-    private final VehiculoService vehiculoService;
 
-    public PedidoController(
-      PedidoService pedidoService,
-      ClienteService clienteService,
-      RepartidorService repartidorService,
-      VehiculoService vehiculoService
-    ) {
-        this.pedidoService     = pedidoService;
-        this.clienteService    = clienteService;
-        this.repartidorService = repartidorService;
-        this.vehiculoService   = vehiculoService;
+    public PedidoController(PedidoService pedidoService) {
+        this.pedidoService = pedidoService;
     }
 
-    /**
-     * Crear un pedido. Extrae un repartidor y un vehículo automáticamente.
-     */
+    /** 1) Crear pedido */
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,
                  produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Pedido> crearPedido(@RequestBody @Valid PedidoDTO dto) {
-        Pedido p = pedidoService.crearPedido(
-          dto.getDeptoOrigen(),
-          dto.getDeptoDestino(),
-          clienteService.buscar(dto.getDpiCliente()),
-          repartidorService.dequeue(),
-          vehiculoService.dequeue()
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(p);
+    public ResponseEntity<?> crearPedido(@Valid @RequestBody PedidoDTO dto) {
+        try {
+            Pedido p = pedidoService.crearPedido(dto);
+            return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(p);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity
+                .badRequest()
+                .body(ex.getMessage());
+        }
     }
 
-    /**
-     * Listar pedidos (filtro opcional por estado: Pendiente, EnCurso, Completado)
-     */
+    /** 2) Listar pedidos */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Pedido>> listarPedidos(
       @RequestParam(required = false) String estado
@@ -70,68 +50,58 @@ public class PedidoController {
         );
     }
 
-    /**
-     * Obtener detalle de un pedido por su número.
-     */
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Pedido> obtenerPedido(@PathVariable("id") long id) {
+    /** 3) Detalle */
+    @GetMapping("/{id}")
+    public ResponseEntity<Pedido> obtenerPedido(@PathVariable long id) {
         Pedido p = pedidoService.buscarPedido(id);
         return p != null
           ? ResponseEntity.ok(p)
           : ResponseEntity.notFound().build();
     }
 
-    /**
-     * Agregar una caja extra a un pedido existente.
-     */
-    @PostMapping(path = "/agregar-caja",
-                 consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> agregarCaja(
-      @RequestBody @Valid CajaPedidoDTO dto
-    ) {
-        pedidoService.agregarCajaAlPedido(
-          dto.getNumeroPedido(),
-          new CajaPedido(dto.getIdCaja(), dto.getFechaIngreso())
-        );
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * Endpoint para asignar manualmente repartidor y vehículo.
-     */
-    @PatchMapping(path = "/{id}/asignar",
-                  consumes = MediaType.APPLICATION_JSON_VALUE,
-                  produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Pedido> asignarRecursos(
-      @PathVariable("id") long id,
-      @RequestBody @Valid AsignarPedidoDTO dto
-    ) {
-        Pedido actualizado = pedidoService.asignarRecursos(
-          id,
-          dto.getRepartidorDpi(),
-          dto.getVehiculoPlaca()
-        );
+    /** 4) Asignación automática de recursos */
+    @PostMapping(path = "/{id}/asignar", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Pedido> asignarRecursosAuto(@PathVariable long id) {
+        Pedido actualizado = pedidoService.asignarRecursosAutomatico(id);
         return ResponseEntity.ok(actualizado);
     }
 
-    /**
-     * Marcar pedido como completado y reencolar repartidor y vehículo.
-     */
+    /** 5) Completar y reencolar */
     @PutMapping("/{id}/completar")
-    public ResponseEntity<Void> completarPedido(@PathVariable("id") long id) {
-        boolean ok = pedidoService.completarPedido(
-            id,
-            repartidorService,
-            vehiculoService
-        );
+    public ResponseEntity<Void> completarPedido(@PathVariable long id) {
+        boolean ok = pedidoService.completarPedido(id);
         return ok
           ? ResponseEntity.ok().build()
           : ResponseEntity.notFound().build();
     }
 
-    /**
-     * Diagrama textual de pedidos en memoria para debug.
-     */
+    /** 6) Cancelar (reencola recursos sin eliminar) */
+    @PostMapping("/{id}/cancelar")
+    public ResponseEntity<String> cancelarPedido(@PathVariable long id) {
+        boolean ok = pedidoService.cancelarPedido(id);
+        if (ok) {
+            return ResponseEntity.ok("Pedido cancelado y recursos reencolados");
+        } else {
+            return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body("No se puede cancelar: comprueba que el pedido exista y esté en curso o pendiente");
+        }
+    }
+
+    /** 7) Eliminar y reencolar solo completados o cancelados */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> eliminarPedido(@PathVariable long id) {
+        boolean ok = pedidoService.eliminarPedido(id);
+        if (ok) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body("Solo se pueden eliminar pedidos completados o cancelados");
+        }
+    }
+
+    /** 8) Diagrama (debug) */
     @GetMapping(path = "/diagrama", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> diagrama() {
         return ResponseEntity.ok(
@@ -139,10 +109,7 @@ public class PedidoController {
         );
     }
 
-    /**
-     * Carga masiva de pedidos desde CSV.
-     * Cada línea: Origen;Destino;DPICliente
-     */
+    /** 9) Carga CSV */
     @PostMapping(path = "/cargar-csv",
                  consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
                  produces = MediaType.TEXT_PLAIN_VALUE)
@@ -150,21 +117,15 @@ public class PedidoController {
       @RequestParam("archivo") MultipartFile archivo
     ) {
         try (BufferedReader br = new BufferedReader(
-                 new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))
-        ) {
+                 new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))) {
             List<String[]> lineas = new ArrayList<>();
             String linea;
             while ((linea = br.readLine()) != null) {
                 if (linea.trim().isEmpty()) continue;
                 lineas.add(linea.split(";"));
             }
-            pedidoService.cargarDesdeCsv(
-              lineas,
-              clienteService,
-              repartidorService,
-              vehiculoService
-            );
-            return ResponseEntity.ok("Pedidos cargados desde CSV: " + lineas.size());
+            int count = pedidoService.cargarDesdeCsv(lineas);
+            return ResponseEntity.ok("Pedidos cargados: " + count);
         } catch (Exception e) {
             return ResponseEntity
               .status(HttpStatus.BAD_REQUEST)

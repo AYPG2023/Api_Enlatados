@@ -31,6 +31,15 @@ public class CajaService {
         }
         return creadas;
     }
+    
+    /**Reencola una caja específica (al completar/eliminar pedido) */
+    public void reencolarCaja(String producto, long idCaja, String fechaIngreso) {
+        Stack<Caja> pila = inventario.computeIfAbsent(producto, k -> new Stack<>());
+        // Insertamos de nuevo la caja conservando su fecha original
+        pila.push(new Caja(idCaja, producto, fechaIngreso));
+        // Aseguramos nextId por encima de los IDs reinyectados
+        nextId.updateAndGet(n -> Math.max(n, idCaja + 1));
+    }
 
     /**
      * Extrae (pop) hasta 'cantidad' cajas del tope de la pila del producto.
