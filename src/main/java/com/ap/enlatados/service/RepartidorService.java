@@ -18,7 +18,7 @@ public class RepartidorService {
 
     private NodoRepartidor front, rear;
 
-    /** Crear repartidor */
+    /** Crear o encolar repartidor */
     public void crear(Repartidor r) {
         enqueue(r);
     }
@@ -43,7 +43,7 @@ public class RepartidorService {
         return r;
     }
 
-    /** Reencolar repartidor */
+    /** Reencolar repartidor existente */
     public void reenqueue(Repartidor r) {
         enqueue(r);
     }
@@ -70,37 +70,38 @@ public class RepartidorService {
         temp.forEach(this::enqueue);
     }
 
-    /** Modificar repartidor */
+    /** Modificar (elimina y re-crea) */
     public void modificar(String dpi, Repartidor nuevo) {
         eliminar(dpi);
         crear(nuevo);
     }
 
-    /** Listar repartidores */
+    /** Listar todos */
     public List<Repartidor> listar() {
-        List<Repartidor> repartidores = new ArrayList<>();
+        List<Repartidor> list = new ArrayList<>();
         NodoRepartidor t = front;
         while (t != null) {
-            repartidores.add(t.data);
+            list.add(t.data);
             t = t.next;
         }
-        return repartidores;
+        return list;
     }
 
-    /** Cargar desde CSV */
+    /** Carga masiva desde CSV */
     public void cargarMasivo(List<String[]> datos) {
         for (String[] linea : datos) {
             if (linea.length != 6) continue;
             crear(new Repartidor(
-                linea[0].trim(), // dpi
-                linea[1].trim(), // nombre
-                linea[2].trim(), // apellidos
-                linea[3].trim(), // tipoLicencia
-                linea[4].trim(), // numeroLicencia
-                linea[5].trim()  // telefono
+                linea[0].trim(),
+                linea[1].trim(),
+                linea[2].trim(),
+                linea[3].trim(),
+                linea[4].trim(),
+                linea[5].trim()
             ));
         }
     }
+
     /** Diagrama textual de la cola */
     public String obtenerDiagramaCola() {
         StringBuilder sb = new StringBuilder();

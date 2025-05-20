@@ -23,36 +23,34 @@ public class RepartidorController {
         this.svc = svc;
     }
 
-    /** Crear repartidor con JSON */
-    @PostMapping(
-    		  consumes = MediaType.APPLICATION_JSON_VALUE,
-    		  produces = MediaType.APPLICATION_JSON_VALUE
-    		)
-    		public ResponseEntity<Repartidor> crear(@RequestBody @Valid RepartidorDTO dto) {
-    		    Repartidor r = new Repartidor(
-    		        dto.getDpi(),
-    		        dto.getNombre(),
-    		        dto.getApellidos(),
-    		        dto.getTipoLicencia(),
-    		        dto.getNumeroLicencia(),
-    		        dto.getTelefono()
-    		    );
-    		    svc.crear(r);
-    		    return ResponseEntity.status(HttpStatus.CREATED).body(r);
-    		}
-    
-    /** Buscar por DPI */
-    @GetMapping(value = "/{dpi}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Repartidor> crear(@RequestBody @Valid RepartidorDTO dto) {
+        Repartidor r = new Repartidor(
+            dto.getDpi(),
+            dto.getNombre(),
+            dto.getApellidos(),
+            dto.getTipoLicencia(),
+            dto.getNumeroLicencia(),
+            dto.getTelefono()
+        );
+        svc.crear(r);
+        return ResponseEntity.status(HttpStatus.CREATED).body(r);
+    }
+
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<Repartidor> listar() {
+        return svc.listar();
+    }
+
+    @GetMapping("/{dpi}")
     public ResponseEntity<Repartidor> buscar(@PathVariable String dpi) {
         return ResponseEntity.ok(svc.buscar(dpi));
     }
 
-    /** Actualizar (reemplazo completo) por JSON */
-    @PutMapping(
-      path = "/{dpi}",
-      consumes = MediaType.APPLICATION_JSON_VALUE,
-      produces = MediaType.APPLICATION_JSON_VALUE
-    )
+    @PutMapping(path = "/{dpi}",
+                consumes = MediaType.APPLICATION_JSON_VALUE,
+                produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Repartidor> actualizar(
         @PathVariable String dpi,
         @RequestBody @Valid RepartidorDTO dto
@@ -62,68 +60,53 @@ public class RepartidorController {
             dto.getNombre(),
             dto.getApellidos(),
             dto.getTipoLicencia(),
-            dto.getNumeroLicencia(), 
+            dto.getNumeroLicencia(),
             dto.getTelefono()
         );
         svc.modificar(dpi, nuevo);
         return ResponseEntity.ok(nuevo);
     }
 
-    /** Eliminar por DPI */
     @DeleteMapping("/{dpi}")
     public ResponseEntity<Void> eliminar(@PathVariable String dpi) {
         svc.eliminar(dpi);
         return ResponseEntity.noContent().build();
     }
 
-    /** Listar todos */
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<Repartidor> listar() {
-        return svc.listar();
-    }
-
-    /** Carga masiva desde CSV */
-    @PostMapping(
-      path = "/cargar-csv",
-      consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    public ResponseEntity<String> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
+    @PostMapping(path = "/cargar-csv",
+                 consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> cargarCsv(@RequestParam("archivo") MultipartFile archivo) {
         try (BufferedReader br = new BufferedReader(
                  new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))
         ) {
-            List<String[]> registros = new ArrayList<>();
+            List<String[]> regs = new ArrayList<>();
             String linea;
             while ((linea = br.readLine()) != null) {
-                registros.add(linea.split(";"));
+                regs.add(linea.split(";"));
             }
-            svc.cargarMasivo(registros);
+            svc.cargarMasivo(regs);
             return ResponseEntity.ok("Repartidores cargados desde CSV");
         } catch (IOException e) {
-            return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body("Error al procesar CSV: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                 .body("Error al procesar CSV: " + e.getMessage());
         }
     }
 
-    /** Diagrama textual de la cola */
-    @GetMapping(value = "/diagrama", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String obtenerDiagrama() {
+    @GetMapping(path = "/diagrama", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String diagrama() {
         return svc.obtenerDiagramaCola();
     }
 
-    /** Asignar (dequeue) siguiente repartidor */
-    @PostMapping(value = "/asignar", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/asignar", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> asignarSiguiente() {
         Repartidor r = svc.dequeue();
-        if (r == null) {
+        if (r == null)
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                                  .body("No hay repartidores disponibles");
-        }
         return ResponseEntity.ok(r);
     }
 
-    /** Reencolar repartidor existente por DPI */
-    @PostMapping("/reenqueue")
+    @PostMapping(path = "/reenqueue")
     public ResponseEntity<String> reenqueue(@RequestParam String dpi) {
         Repartidor r = svc.buscar(dpi);
         svc.reenqueue(r);

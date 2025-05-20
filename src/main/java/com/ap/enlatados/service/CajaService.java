@@ -1,11 +1,14 @@
+// src/main/java/com/ap/enlatados/service/CajaService.java
 package com.ap.enlatados.service;
 
+import com.ap.enlatados.dto.ResumenDTO;
 import com.ap.enlatados.model.Caja;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 @Service
 public class CajaService {
@@ -53,8 +56,7 @@ public class CajaService {
     }
 
     /**
-     * Carga masivo de cajas desde CSV, cada línea sólo lleva el ID.
-     * Se presume que todas son de un mismo producto pasado por parámetro.
+     * Carga masivo de cajas desde CSV, cada línea solo lleva el ID.
      * @return número de cajas cargadas.
      */
     public int cargarDesdeCsv(String producto, List<String[]> registros) {
@@ -81,5 +83,25 @@ public class CajaService {
         }
         sb.append("NULL");
         return sb.toString();
+    }
+
+    /**
+     * Devuelve un listado de ResumenDTO con un resumen por producto:
+     *  - cantidad de cajas (tamaño de la pila)
+     *  - fecha de la última caja (tope de la pila)
+     */
+    public List<ResumenDTO> obtenerResumenDeProductos() {
+        return inventario.entrySet().stream()
+            .map(entry -> {
+                String producto = entry.getKey();
+                Stack<Caja> pila = entry.getValue();
+                long cantidad = pila.size();
+                // peek() devuelve la caja más reciente
+                String fechaUltima = cantidad > 0
+                    ? pila.peek().getFechaIngreso()
+                    : "";
+                return new ResumenDTO(producto, cantidad, fechaUltima);
+            })
+            .collect(Collectors.toList());
     }
 }

@@ -3,6 +3,8 @@ package com.ap.enlatados.controller;
 import com.ap.enlatados.model.Caja;
 import com.ap.enlatados.service.CajaService;
 import com.ap.enlatados.dto.CajaDTO;
+import com.ap.enlatados.dto.ResumenDTO;
+
 import jakarta.validation.Valid;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -75,6 +77,11 @@ public class CajaController {
     ) {
         List<Caja> todas = cajaService.listarCajas(producto);
         return ResponseEntity.ok(todas);
+    }
+
+    @GetMapping("/resumen")
+    public ResponseEntity<List<ResumenDTO>> resumen() {
+        return ResponseEntity.ok(cajaService.obtenerResumenDeProductos());
     }
 
     /**

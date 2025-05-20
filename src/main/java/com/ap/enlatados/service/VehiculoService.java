@@ -1,11 +1,11 @@
+// src/main/java/com/ap/enlatados/service/VehiculoService.java
 package com.ap.enlatados.service;
 
 import com.ap.enlatados.model.Vehiculo;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class VehiculoService {
@@ -16,15 +16,26 @@ public class VehiculoService {
         NodoVehiculo(Vehiculo v) { this.data = v; }
     }
 
+    // Cola de vehículos DISPONIBLES
     private NodoVehiculo front, rear;
 
-    /** Crear vehículo */
-    public void crear(Vehiculo v) {
-        enqueue(v);
-    }
+    // Compatibilidad licencia → tipos de vehículo
+    private static final Map<String,List<String>> LICENCIA_COMPAT = Map.of(
+      "M",  List.of("MOTO"),
+      "P",  List.of("CARRO"),
+      "A",  List.of("CARRO","BUS_URBANO","BUS_EXTRAURBANO"),
+      "C",  List.of("CARRO","REMOLQUE"),
+      "CD", List.of("CARRO","REMOLQUE"),
+      "CC", List.of("CARRO","REMOLQUE"),
+      "MI", List.of("CARRO","MOTO"),
+      "O",  List.of("CARRO","BUS_URBANO"),
+      "E",  List.of("MAQUINARIA")
+    );
 
-    /** Agregar a la cola */
-    public void enqueue(Vehiculo v) {
+    /**
+     * Encola un vehículo disponible.
+     */
+    public void crear(Vehiculo v) {
         NodoVehiculo node = new NodoVehiculo(v);
         if (rear == null) {
             front = rear = node;
@@ -34,7 +45,17 @@ public class VehiculoService {
         }
     }
 
-    /** Extraer vehículo (dequeue) */
+    /**
+     * Alias de crear(v): encola un vehículo.
+     */
+    public void enqueue(Vehiculo v) {
+        crear(v);
+    }
+
+    /**
+     * Desencola (asigna) el siguiente vehículo disponible.
+     * @return el Vehiculo o null si no hay ninguno.
+     */
     public Vehiculo dequeue() {
         if (front == null) return null;
         Vehiculo v = front.data;
@@ -43,66 +64,104 @@ public class VehiculoService {
         return v;
     }
 
-    /** Reencolar vehículo */
+    /**
+     * Reencola (libera) un vehículo, devolviéndolo a la cola de disponibles.
+     */
     public void reenqueue(Vehiculo v) {
         enqueue(v);
     }
 
-    /** Buscar por placa */
+    /**
+     * Busca un vehículo disponible por placa, sin sacarlo de la cola.
+     * @throws NoSuchElementException si no lo encuentra.
+     */
     public Vehiculo buscar(String placa) {
         NodoVehiculo t = front;
         while (t != null) {
             if (t.data.getPlaca().equals(placa)) return t.data;
             t = t.next;
         }
-        throw new NoSuchElementException("Vehículo no encontrado");
+        throw new NoSuchElementException("Vehículo no encontrado o no disponible: " + placa);
     }
 
-    /** Eliminar por placa */
+    /**
+     * Elimina de la cola un vehículo por placa.
+     * (Si ya estaba asignado, no estará aquí y lanza excepción en buscar.)
+     */
     public void eliminar(String placa) {
         List<Vehiculo> temp = new ArrayList<>();
         NodoVehiculo t = front;
         while (t != null) {
-            if (!t.data.getPlaca().equals(placa)) temp.add(t.data);
+            if (!t.data.getPlaca().equals(placa)) {
+                temp.add(t.data);
+            }
             t = t.next;
         }
         front = rear = null;
         temp.forEach(this::enqueue);
     }
 
-    /** Modificar vehículo */
+    /**
+     * Modifica un vehículo existente (elimínalo y créalo de nuevo con datos nuevos).
+     */
     public void modificar(String placa, Vehiculo nuevo) {
         eliminar(placa);
         crear(nuevo);
     }
 
-    /** Listar vehículos */
+    /**
+     * Lista todos los vehículos actualmente DISPONIBLES.
+     */
     public List<Vehiculo> listar() {
-        List<Vehiculo> vehiculos = new ArrayList<>();
+        List<Vehiculo> list = new ArrayList<>();
         NodoVehiculo t = front;
         while (t != null) {
-            vehiculos.add(t.data);
+            list.add(t.data);
             t = t.next;
         }
-        return vehiculos;
+        return list;
     }
 
-    /** Cargar desde CSV */
+    /**
+     * Lista por tipoVehiculo.
+     */
+    public List<Vehiculo> listarPorTipo(String tipoVehiculo) {
+        return listar().stream()
+            .filter(v -> v.getTipoVehiculo().equals(tipoVehiculo))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Lista los vehículos compatibles con un tipo de licencia.
+     */
+    public List<Vehiculo> listarPorLicencia(String tipoLicencia) {
+        List<String> permitidos = LICENCIA_COMPAT.getOrDefault(tipoLicencia, Collections.emptyList());
+        return listar().stream()
+            .filter(v -> permitidos.contains(v.getTipoVehiculo()))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Carga masiva desde CSV (cada línea con 7 campos).
+     */
     public void cargarMasivo(List<String[]> datos) {
         for (String[] linea : datos) {
-            if (linea.length != 6) continue;
+            if (linea.length != 7) continue;
             crear(new Vehiculo(
-                    linea[0].trim(),
-                    linea[1].trim(),
-                    linea[2].trim(),
-                    linea[3].trim(),
-                    Integer.parseInt(linea[4].trim()),
-                    linea[5].trim()
+                linea[0].trim(),
+                linea[1].trim(),
+                linea[2].trim(),
+                linea[3].trim(),
+                Integer.parseInt(linea[4].trim()),
+                linea[5].trim(),
+                linea[6].trim()
             ));
         }
     }
 
-    /** Diagrama textual de la cola */
+    /**
+     * Devuelve un diagrama textual de la cola: [placa] -> ... -> NULL
+     */
     public String obtenerDiagramaCola() {
         StringBuilder sb = new StringBuilder();
         NodoVehiculo t = front;

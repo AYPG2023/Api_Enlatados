@@ -24,18 +24,18 @@ public class Repartidor {
         this.telefono = telefono;
     }
 
-    // --- GETTERS ---
-    public String getDpi()           { return dpi; }
-    public String getNombre()        { return nombre; }
-    public String getApellidos()     { return apellidos; }
-    public String getTipoLicencia()  { return tipoLicencia; }
+    // Getters
+    public String getDpi()            { return dpi; }
+    public String getNombre()         { return nombre; }
+    public String getApellidos()      { return apellidos; }
+    public String getTipoLicencia()   { return tipoLicencia; }
     public String getNumeroLicencia(){ return numeroLicencia; }
-    public String getTelefono()      { return telefono; }
+    public String getTelefono()       { return telefono; }
 
-    // --- SETTERS ---
-    public void setNombre(String n)             { this.nombre = n; }
-    public void setApellidos(String a)          { this.apellidos = a; }
-    public void setTipoLicencia(String t)       { this.tipoLicencia = t; }
-    public void setNumeroLicencia(String num)   { this.numeroLicencia = num; }
-    public void setTelefono(String tel)         { this.telefono = tel; }
+    // Setters (except dpi)
+    public void setNombre(String nombre)             { this.nombre = nombre; }
+    public void setApellidos(String apellidos)       { this.apellidos = apellidos; }
+    public void setTipoLicencia(String tipoLicencia) { this.tipoLicencia = tipoLicencia; }
+    public void setNumeroLicencia(String num)        { this.numeroLicencia = num; }
+    public void setTelefono(String telefono)         { this.telefono = telefono; }
 }

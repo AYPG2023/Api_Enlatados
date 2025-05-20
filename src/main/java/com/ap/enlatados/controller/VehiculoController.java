@@ -1,4 +1,3 @@
-// src/main/java/com/ap/enlatados/controller/VehiculoController.java
 package com.ap.enlatados.controller;
 
 import com.ap.enlatados.dto.VehiculoDTO;
@@ -24,7 +23,9 @@ public class VehiculoController {
         this.svc = svc;
     }
 
-    /** Crea un vehículo recibiendo JSON en el body */
+    /**
+     * Crear un vehículo y encolarlo en DISPONIBLES.
+     */
     @PostMapping(
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE
@@ -36,19 +37,38 @@ public class VehiculoController {
             dto.getModelo(),
             dto.getColor(),
             dto.getAnio(),
-            dto.getTransmision()
+            dto.getTransmision(),
+            dto.getTipoVehiculo()
         );
         svc.crear(v);
         return ResponseEntity.status(HttpStatus.CREATED).body(v);
     }
 
-    /** Devuelve un vehículo por placa */
-    @GetMapping(value = "/{placa}", produces = MediaType.APPLICATION_JSON_VALUE)
+    /**
+     * Listar vehículos DISPONIBLES.
+     * Se pueden filtrar por tipoVehiculo o por tipoLicencia.
+     */
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<Vehiculo> listar(
+        @RequestParam(required = false) String tipoVehiculo,
+        @RequestParam(required = false) String tipoLicencia
+    ) {
+        if (tipoLicencia != null) {
+            return svc.listarPorLicencia(tipoLicencia);
+        }
+        if (tipoVehiculo != null) {
+            return svc.listarPorTipo(tipoVehiculo);
+        }
+        return svc.listar();
+    }
+
+    /** Obtener un vehículo disponible por placa */
+    @GetMapping("/{placa}")
     public ResponseEntity<Vehiculo> buscar(@PathVariable String placa) {
         return ResponseEntity.ok(svc.buscar(placa));
     }
 
-    /** Actualiza un vehículo completo via JSON */
+    /** Actualizar datos de un vehículo (se reemplaza en la cola) */
     @PutMapping(
       path = "/{placa}",
       consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -64,56 +84,45 @@ public class VehiculoController {
             dto.getModelo(),
             dto.getColor(),
             dto.getAnio(),
-            dto.getTransmision()
+            dto.getTransmision(),
+            dto.getTipoVehiculo()
         );
         svc.modificar(placa, nuevo);
         return ResponseEntity.ok(nuevo);
     }
 
-    /** Elimina por placa */
+    /** Eliminar un vehículo disponible por placa */
     @DeleteMapping("/{placa}")
     public ResponseEntity<Void> eliminar(@PathVariable String placa) {
         svc.eliminar(placa);
         return ResponseEntity.noContent().build();
     }
 
-    /** Lista todos los vehículos */
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<Vehiculo> listar() {
-        return svc.listar();
-    }
-
-    /** Carga masiva desde CSV */
-    @PostMapping(
-      path = "/cargar-csv",
-      consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    public ResponseEntity<String> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
+    /**
+     * Carga masiva desde CSV (las líneas se separan por ';').
+     */
+    @PostMapping(path = "/cargar-csv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> cargarCsv(@RequestParam("archivo") MultipartFile archivo) {
         try (BufferedReader br = new BufferedReader(
                  new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))
         ) {
-            List<String[]> registros = new ArrayList<>();
+            List<String[]> regs = new ArrayList<>();
             String linea;
             while ((linea = br.readLine()) != null) {
-                registros.add(linea.split(";"));
+                regs.add(linea.split(";"));
             }
-            svc.cargarMasivo(registros);
+            svc.cargarMasivo(regs);
             return ResponseEntity.ok("Vehículos cargados desde CSV");
         } catch (IOException e) {
-            return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body("Error al procesar CSV: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                 .body("Error al procesar CSV: " + e.getMessage());
         }
     }
 
-    /** Diagrama textual de la cola */
-    @GetMapping(value = "/diagrama", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String obtenerDiagrama() {
-        return svc.obtenerDiagramaCola();
-    }
-
-    /** Extrae (dequeue) el siguiente vehículo */
-    @PostMapping(value = "/asignar", produces = MediaType.APPLICATION_JSON_VALUE)
+    /**
+     * Asigna (dequeue) el siguiente vehículo disponible.
+     */
+    @PostMapping(path = "/asignar", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> asignarSiguiente() {
         Vehiculo v = svc.dequeue();
         if (v == null) {
@@ -123,11 +132,19 @@ public class VehiculoController {
         return ResponseEntity.ok(v);
     }
 
-    /** Reencola un vehículo existente por placa */
+    /**
+     * Libera (reenqueue) un vehículo al terminar el pedido.
+     */
     @PostMapping("/reenqueue")
     public ResponseEntity<String> reenqueue(@RequestParam String placa) {
         Vehiculo v = svc.buscar(placa);
         svc.reenqueue(v);
-        return ResponseEntity.ok("Vehículo reencolado");
+        return ResponseEntity.ok("Vehículo reencolado: " + placa);
+    }
+
+    /** Diagrama textual de depuración de la cola */
+    @GetMapping(path = "/diagrama", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String diagrama() {
+        return svc.obtenerDiagramaCola();
     }
 }

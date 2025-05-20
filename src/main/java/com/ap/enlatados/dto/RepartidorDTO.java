@@ -21,27 +21,24 @@ public class RepartidorDTO {
     private String numeroLicencia;
 
     @NotBlank
-    @Pattern(
-      regexp = "\\+?\\d{8,15}",
-      message = "Teléfono debe ser un número de 8 a 15 dígitos, opcional +"
-    )
+    @Pattern(regexp = "\\+?\\d{8,15}", message = "Teléfono debe ser de 8 a 15 dígitos, opcional +")
     private String telefono;
 
     public RepartidorDTO() {}
 
-    // --- GETTERS ---
-    public String getDpi() { return dpi; }
-    public String getNombre() { return nombre; }
-    public String getApellidos() { return apellidos; }
-    public String getTipoLicencia() { return tipoLicencia; }
-    public String getNumeroLicencia() { return numeroLicencia; }
-    public String getTelefono() { return telefono; }
+    // Getters
+    public String getDpi()            { return dpi; }
+    public String getNombre()         { return nombre; }
+    public String getApellidos()      { return apellidos; }
+    public String getTipoLicencia()   { return tipoLicencia; }
+    public String getNumeroLicencia(){ return numeroLicencia; }
+    public String getTelefono()       { return telefono; }
 
-    // --- SETTERS ---
-    public void setDpi(String dpi) { this.dpi = dpi; }
-    public void setNombre(String nombre) { this.nombre = nombre; }
-    public void setApellidos(String apellidos) { this.apellidos = apellidos; }
-    public void setTipoLicencia(String tipoLicencia) { this.tipoLicencia = tipoLicencia; }
-    public void setNumeroLicencia(String numeroLicencia) { this.numeroLicencia = numeroLicencia; }
-    public void setTelefono(String telefono) { this.telefono = telefono; }
+    // Setters
+    public void setDpi(String dpi)                    { this.dpi = dpi; }
+    public void setNombre(String nombre)              { this.nombre = nombre; }
+    public void setApellidos(String apellidos)        { this.apellidos = apellidos; }
+    public void setTipoLicencia(String tipoLicencia)  { this.tipoLicencia = tipoLicencia; }
+    public void setNumeroLicencia(String numeroLicencia){ this.numeroLicencia = numeroLicencia; }
+    public void setTelefono(String telefono)          { this.telefono = telefono; }
 }
