@@ -26,19 +26,31 @@ public class PedidoController {
 
     /** 1) Crear pedido */
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,
-                 produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> crearPedido(@Valid @RequestBody PedidoDTO dto) {
-        try {
-            Pedido p = pedidoService.crearPedido(dto);
-            return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(p);
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity
-                .badRequest()
-                .body(ex.getMessage());
-        }
-    }
+            produces = MediaType.APPLICATION_JSON_VALUE)
+public ResponseEntity<?> crearPedido(@Valid @RequestBody PedidoDTO dto) {
+   try {
+       Pedido p = pedidoService.crearPedido(dto);
+
+       // Si está pendiente, devolvemos un mensaje en texto
+       if ("Pendiente".equalsIgnoreCase(p.getEstado())) {
+           return ResponseEntity.status(HttpStatus.CREATED)
+               .body("Pedido creado en estado PENDIENTE (ID: " 
+                     + p.getNumeroPedido() 
+                     + "). Asigne repartidor y vehículo más adelante cuando este disponible alguno"
+                     + p.getNumeroPedido()
+                     + "/asignar");
+       }
+
+       // Si se asignó todo, devolvemos el objeto Pedido
+       return ResponseEntity.status(HttpStatus.CREATED).body(p);
+
+   } catch (IllegalArgumentException ex) {
+       return ResponseEntity
+           .badRequest()
+           .body(ex.getMessage());
+   }
+}
+
 
     /** 2) Listar pedidos */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
