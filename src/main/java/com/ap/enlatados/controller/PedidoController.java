@@ -1,5 +1,6 @@
 package com.ap.enlatados.controller;
 
+import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.PedidoDTO;
 import com.ap.enlatados.model.Pedido;
 import com.ap.enlatados.service.PedidoService;
@@ -114,11 +115,10 @@ public ResponseEntity<?> crearPedido(@Valid @RequestBody PedidoDTO dto) {
     }
 
     /** 8) Diagrama (debug) */
-    @GetMapping(path = "/diagrama", produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> diagrama() {
-        return ResponseEntity.ok(
-          pedidoService.obtenerDiagramaPedidos()
-        );
+    @GetMapping(path = "/diagrama-json", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<DiagramDTO> diagramaJson() {
+        DiagramDTO dto = pedidoService.obtenerDiagramaPedidosDTO();
+        return ResponseEntity.ok(dto);
     }
 
     /** 9) Carga CSV */

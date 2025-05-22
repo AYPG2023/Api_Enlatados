@@ -141,14 +141,9 @@ public class UsuarioController {
         }
     }
 
-    @GetMapping(path = "/linked", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String obtenerListaEnlazadaComoNodos() {
-        StringBuilder sb = new StringBuilder();
-        for (Usuario u : usuarioService.listar()) {
-            sb.append("[").append(u.getId()).append(": ")
-              .append(u.getNombre()).append("] -> ");
-        }
-        sb.append("NULL");
-        return sb.toString();
+    @GetMapping(path = "/diagrama-json", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<DiagramDTO> diagramaJson() {
+        DiagramDTO dto = usuarioService.obtenerDiagramaUsuariosDTO();
+        return ResponseEntity.ok(dto);
     }
 }

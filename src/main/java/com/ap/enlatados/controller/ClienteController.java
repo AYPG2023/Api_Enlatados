@@ -2,6 +2,7 @@
 package com.ap.enlatados.controller;
 
 import com.ap.enlatados.dto.ClienteDTO;
+import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.model.Cliente;
 import com.ap.enlatados.service.ClienteService;
 import jakarta.validation.Valid;
@@ -103,11 +104,9 @@ public class ClienteController {
     }
 
     /** Devuelve diagrama textual del AVL en texto plano */
-    @GetMapping(
-      path = "/diagrama",
-      produces = MediaType.TEXT_PLAIN_VALUE
-    )
-    public String obtenerDiagrama() {
-        return clienteService.obtenerDiagramaAVL();
+    @GetMapping(path = "/diagrama-json", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<DiagramDTO> diagramaJson() {
+        DiagramDTO dto = clienteService.obtenerDiagramaClientesDTO();
+        return ResponseEntity.ok(dto);
     }
 }

@@ -1,6 +1,9 @@
 // src/main/java/com/ap/enlatados/service/VehiculoService.java
 package com.ap.enlatados.service;
 
+import com.ap.enlatados.dto.DiagramDTO;
+import com.ap.enlatados.dto.EdgeDTO;
+import com.ap.enlatados.dto.NodeDTO;
 import com.ap.enlatados.model.Vehiculo;
 import org.springframework.stereotype.Service;
 
@@ -159,17 +162,24 @@ public class VehiculoService {
         }
     }
 
-    /**
-     * Devuelve un diagrama textual de la cola: [placa] -> ... -> NULL
-     */
-    public String obtenerDiagramaCola() {
-        StringBuilder sb = new StringBuilder();
+   
+    public DiagramDTO obtenerDiagramaColaDTO() {
+        List<NodeDTO> nodes = new ArrayList<>();
+        List<EdgeDTO> edges = new ArrayList<>();
+
         NodoVehiculo t = front;
+        int idx = 0;
         while (t != null) {
-            sb.append("[").append(t.data.getPlaca()).append("] -> ");
+            // crea un nodo con etiqueta = placa
+            nodes.add(new NodeDTO(idx, t.data.getPlaca()));
+            // si existe siguiente, crea arista idx → idx+1
+            if (t.next != null) {
+                edges.add(new EdgeDTO(idx, idx + 1));
+            }
             t = t.next;
+            idx++;
         }
-        sb.append("NULL");
-        return sb.toString();
+
+        return new DiagramDTO(nodes, edges);
     }
 }

@@ -1,6 +1,11 @@
 package com.ap.enlatados.service;
 
 import com.ap.enlatados.model.Cliente;
+import com.ap.enlatados.dto.DiagramDTO;
+import com.ap.enlatados.dto.NodeDTO;
+import com.ap.enlatados.dto.EdgeDTO;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -132,11 +137,42 @@ public class ClienteService {
         }
     }
 
-    /** Diagrama AVL en texto */
-    public String obtenerDiagramaAVL() {
-        StringBuilder sb = new StringBuilder();
-        diagramaAVL(root, sb, 0);
-        return sb.toString();
+    /**
+     * Construye un DiagramDTO recorriendo el AVL.
+     */
+    public DiagramDTO obtenerDiagramaClientesDTO() {
+        List<NodeDTO> nodes = new ArrayList<>();
+        List<EdgeDTO> edges = new ArrayList<>();
+        AtomicInteger counter = new AtomicInteger(0);
+        buildDiagram(root, nodes, edges, counter);
+        return new DiagramDTO(nodes, edges);
+    }
+
+    /**
+     * Recorre pre-orden el nodo, asigna un ID y añade aristas a hijos.
+     * @return el ID asignado a este nodo (o -1 si es null)
+     */
+    private int buildDiagram(NodoAVL node,
+                             List<NodeDTO> nodes,
+                             List<EdgeDTO> edges,
+                             AtomicInteger counter) {
+        if (node == null) return -1;
+        // ID único para este nodo
+        int id = counter.getAndIncrement();
+        // etiqueta con DPI (o lo que quieras mostrar)
+        nodes.add(new NodeDTO(id, node.data.getDpi()));
+
+        // hijo izquierdo
+        int leftId = buildDiagram(node.left, nodes, edges, counter);
+        if (leftId != -1) {
+            edges.add(new EdgeDTO(id, leftId));
+        }
+        // hijo derecho
+        int rightId = buildDiagram(node.right, nodes, edges, counter);
+        if (rightId != -1) {
+            edges.add(new EdgeDTO(id, rightId));
+        }
+        return id;
     }
 
     private void diagramaAVL(NodoAVL node, StringBuilder sb, int nivel) {

@@ -1,6 +1,9 @@
 // src/main/java/com/ap/enlatados/service/CajaService.java
 package com.ap.enlatados.service;
 
+import com.ap.enlatados.dto.DiagramDTO;
+import com.ap.enlatados.dto.EdgeDTO;
+import com.ap.enlatados.dto.NodeDTO;
 import com.ap.enlatados.dto.ResumenDTO;
 import com.ap.enlatados.model.Caja;
 import org.springframework.stereotype.Service;
@@ -84,14 +87,24 @@ public class CajaService {
     /**
      * Genera un diagrama textual de la pila de un producto: "[idN] -> ... -> NULL"
      */
-    public String obtenerDiagrama(String producto) {
-        Stack<Caja> pila = inventario.getOrDefault(producto, new Stack<>());
-        StringBuilder sb = new StringBuilder();
-        for (int i = pila.size() - 1; i >= 0; i--) {
-            sb.append("[").append(pila.get(i).getId()).append("] -> ");
+    public DiagramDTO obtenerDiagramaProductosDTO() {
+        List<NodeDTO> nodes = new ArrayList<>();
+        List<EdgeDTO> edges = new ArrayList<>();
+
+        // Tomamos los nombres de producto
+        List<String> productos = new ArrayList<>(inventario.keySet());
+        // (Opcional: ordenar alfabéticamente)
+        Collections.sort(productos);
+
+        // Construimos nodos y aristas
+        for (int i = 0; i < productos.size(); i++) {
+            nodes.add(new NodeDTO(i, productos.get(i)));
+            if (i + 1 < productos.size()) {
+                edges.add(new EdgeDTO(i, i + 1));
+            }
         }
-        sb.append("NULL");
-        return sb.toString();
+
+        return new DiagramDTO(nodes, edges);
     }
 
     /**

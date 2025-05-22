@@ -1,5 +1,8 @@
 package com.ap.enlatados.service;
 
+import com.ap.enlatados.dto.DiagramDTO;
+import com.ap.enlatados.dto.EdgeDTO;
+import com.ap.enlatados.dto.NodeDTO;
 import com.ap.enlatados.model.Repartidor;
 import org.springframework.stereotype.Service;
 
@@ -102,15 +105,23 @@ public class RepartidorService {
         }
     }
 
-    /** Diagrama textual de la cola */
-    public String obtenerDiagramaCola() {
-        StringBuilder sb = new StringBuilder();
+    public DiagramDTO obtenerDiagramaRepartidoresDTO() {
+        List<NodeDTO> nodes = new ArrayList<>();
+        List<EdgeDTO> edges = new ArrayList<>();
+
         NodoRepartidor t = front;
+        int idx = 0;
         while (t != null) {
-            sb.append("[").append(t.data.getDpi()).append("] -> ");
+            // nodo con etiqueta = DPI
+            nodes.add(new NodeDTO(idx, t.data.getDpi()));
+            // si hay siguiente, arista idx→idx+1
+            if (t.next != null) {
+                edges.add(new EdgeDTO(idx, idx + 1));
+            }
             t = t.next;
+            idx++;
         }
-        sb.append("NULL");
-        return sb.toString();
+
+        return new DiagramDTO(nodes, edges);
     }
 }

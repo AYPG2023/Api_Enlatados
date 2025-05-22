@@ -7,6 +7,9 @@ import com.ap.enlatados.model.Cliente;
 import com.ap.enlatados.model.Pedido;
 import com.ap.enlatados.model.Repartidor;
 import com.ap.enlatados.model.Vehiculo;
+import com.ap.enlatados.dto.DiagramDTO;
+import com.ap.enlatados.dto.NodeDTO;
+import com.ap.enlatados.dto.EdgeDTO;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -213,15 +216,24 @@ public class PedidoService {
     }
 
     /** Diagrama de lista. */
-    public String obtenerDiagramaPedidos() {
-        StringBuilder sb = new StringBuilder();
+    public DiagramDTO obtenerDiagramaPedidosDTO() {
+        List<NodeDTO> nodes = new ArrayList<>();
+        List<EdgeDTO> edges = new ArrayList<>();
+
         NodoPedido cur = head;
+        int idx = 0;
         while (cur != null) {
-            sb.append("[").append(cur.data.getNumeroPedido()).append("] -> ");
+            // Cada nodo etiqueta con el número de pedido
+            nodes.add(new NodeDTO(idx, String.valueOf(cur.data.getNumeroPedido())));
+            // Si hay siguiente, conecta idx → idx+1
+            if (cur.next != null) {
+                edges.add(new EdgeDTO(idx, idx + 1));
+            }
             cur = cur.next;
+            idx++;
         }
-        sb.append("NULL");
-        return sb.toString();
+
+        return new DiagramDTO(nodes, edges);
     }
 
     /** Reencola solo recursos asignados (repartidor y vehículo). */

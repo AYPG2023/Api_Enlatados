@@ -3,6 +3,7 @@ package com.ap.enlatados.controller;
 import com.ap.enlatados.model.Caja;
 import com.ap.enlatados.service.CajaService;
 import com.ap.enlatados.dto.CajaDTO;
+import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.ResumenDTO;
 
 import jakarta.validation.Valid;
@@ -119,14 +120,9 @@ public class CajaController {
      * Devuelve un diagrama textual de la pila del producto:
      * GET /api/cajas/diagrama?producto=...
      */
-    @GetMapping(
-      path = "/diagrama",
-      produces = MediaType.TEXT_PLAIN_VALUE
-    )
-    public ResponseEntity<String> obtenerDiagrama(
-        @RequestParam String producto
-    ) {
-        String diagrama = cajaService.obtenerDiagrama(producto);
-        return ResponseEntity.ok(diagrama);
+    @GetMapping(path = "/diagrama-general-json", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<DiagramDTO> diagramaGeneralJson() {
+        DiagramDTO dto = cajaService.obtenerDiagramaProductosDTO();
+        return ResponseEntity.ok(dto);
     }
 }

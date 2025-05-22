@@ -1,5 +1,8 @@
 package com.ap.enlatados.service;
 
+import com.ap.enlatados.dto.DiagramDTO;
+import com.ap.enlatados.dto.EdgeDTO;
+import com.ap.enlatados.dto.NodeDTO;
 import com.ap.enlatados.model.Usuario;
 import org.springframework.stereotype.Service;
 
@@ -171,17 +174,26 @@ public class UsuarioService {
         return nuevo;
     }
 
-    /** Representa la lista enlazada como cadena de nodos */
-    public String obtenerCadenaEnlazada() {
-        StringBuilder sb = new StringBuilder();
+    public DiagramDTO obtenerDiagramaUsuariosDTO() {
+        List<NodeDTO> nodes = new ArrayList<>();
+        List<EdgeDTO> edges = new ArrayList<>();
+
         UsuarioNode t = head;
+        int idx = 0;
         while (t != null) {
-            sb.append("[").append(t.data.getId())
-              .append(": ").append(t.data.getNombre())
-              .append("] -> ");
+            // etiqueta con id y nombre
+            String label = t.data.getId() + ": " + t.data.getNombre();
+            nodes.add(new NodeDTO(idx, label));
+
+            // si hay siguiente, conecta idx → idx+1
+            if (t.next != null) {
+                edges.add(new EdgeDTO(idx, idx + 1));
+            }
+
             t = t.next;
+            idx++;
         }
-        sb.append("NULL");
-        return sb.toString();
+
+        return new DiagramDTO(nodes, edges);
     }
 }

@@ -1,5 +1,6 @@
 package com.ap.enlatados.controller;
 
+import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.VehiculoDTO;
 import com.ap.enlatados.model.Vehiculo;
 import com.ap.enlatados.service.VehiculoService;
@@ -142,9 +143,12 @@ public class VehiculoController {
         return ResponseEntity.ok("Vehículo reencolado: " + placa);
     }
 
-    /** Diagrama textual de depuración de la cola */
-    @GetMapping(path = "/diagrama", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String diagrama() {
-        return svc.obtenerDiagramaCola();
+    /**
+     * Diagrama JSON de la cola de vehículos (nodos y aristas).
+     */
+    @GetMapping(path = "/diagrama-json", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<DiagramDTO> diagramaJson() {
+        DiagramDTO dto = svc.obtenerDiagramaColaDTO();
+        return ResponseEntity.ok(dto);
     }
 }
