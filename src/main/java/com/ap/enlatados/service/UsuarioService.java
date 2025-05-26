@@ -25,7 +25,29 @@ public class UsuarioService {
     private final Lista<Usuario> lista = new Lista<>();
     private Usuario usuarioLogueado = null;
 
-    /** Registra un usuario nuevo; el ID se pasa desde el DTO */
+    /**
+     * Devuelve el mayor ID actualmente registrado en la lista (0 si está vacía).
+     */
+    private Long obtenerMaxId() {
+        Long max = 0L;
+        for (Usuario u : listar()) {
+            if (u.getId() != null && u.getId() > max) {
+                max = u.getId();
+            }
+        }
+        return max;
+    }
+
+    /**
+     * Devuelve el siguiente ID sugerido (maxId + 1).
+     */
+    public Long obtenerProximoId() {
+        return obtenerMaxId() + 1;
+    }
+
+    /**
+     * Registra un usuario nuevo; el ID se pasa desde el DTO
+     */
     public Usuario registrar(Long id,
                              String nombre,
                              String apellidos,
@@ -33,7 +55,12 @@ public class UsuarioService {
                              String password) {
         // validar ID único
         if (lista.find(u -> u.getId().equals(id)) != null) {
-            throw new IllegalArgumentException("El ID ya existe: " + id);
+            Long maxId = obtenerMaxId();
+            throw new IllegalArgumentException(
+                    "El ID " + id + " ya existe."
+                             + " Usa un ID mayor o igual a "
+                            + (maxId + 1) + "."
+            );
         }
         // validar email único
         if (lista.find(u -> u.getEmail().equalsIgnoreCase(email)) != null) {
@@ -138,11 +165,11 @@ public class UsuarioService {
         ) {
             int count = 0;
             for (CSVRecord record : parser) {
-                Long id = Long.parseLong(record.get("Id"));
-                String nombre    = record.get("Nombre");
-                String apellidos = record.get("Apellido");
-                String email     = record.get("Email");
-                String password  = record.get("Contraseña");
+                Long id = Long.parseLong(record.get("id"));
+                String nombre    = record.get("nombre");
+                String apellidos = record.get("apellidos");
+                String email     = record.get("email");
+                String password  = record.get("password");
                 registrar(id, nombre, apellidos, email, password);
                 count++;
             }
