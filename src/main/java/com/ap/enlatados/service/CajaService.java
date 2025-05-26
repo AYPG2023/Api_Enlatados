@@ -1,11 +1,11 @@
-// src/main/java/com/ap/enlatados/service/CajaService.java
 package com.ap.enlatados.service;
 
 import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.EdgeDTO;
 import com.ap.enlatados.dto.NodeDTO;
 import com.ap.enlatados.dto.ResumenDTO;
-import com.ap.enlatados.model.Caja;
+import com.ap.enlatados.entity.Caja;
+import com.ap.enlatados.service.eddlineales.Pila;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 @Service
 public class CajaService {
 
-    // Mapa producto → pila (LIFO) de cajas
-    private final Map<String, Stack<Caja>> inventario = new HashMap<>();
+    // Map producto → pila (LIFO) de cajas
+    private final Map<String, Pila<Caja>> inventario = new HashMap<>();
     private final AtomicLong nextId = new AtomicLong(1);
 
     /**
@@ -25,7 +25,7 @@ public class CajaService {
      * @return la lista de cajas creadas.
      */
     public List<Caja> agregarCajas(String producto, int cantidad) {
-        Stack<Caja> pila = inventario.computeIfAbsent(producto, k -> new Stack<>());
+        Pila<Caja> pila = inventario.computeIfAbsent(producto, k -> new Pila<>());
         List<Caja> creadas = new ArrayList<>(cantidad);
         for (int i = 0; i < cantidad; i++) {
             Caja c = new Caja(nextId.getAndIncrement(), producto, LocalDateTime.now().toString());
@@ -35,12 +35,10 @@ public class CajaService {
         return creadas;
     }
     
-    /**Reencola una caja específica (al completar/eliminar pedido) */
+    /** Reencola una caja específica (al completar/eliminar pedido) */
     public void reencolarCaja(String producto, long idCaja, String fechaIngreso) {
-        Stack<Caja> pila = inventario.computeIfAbsent(producto, k -> new Stack<>());
-        // Insertamos de nuevo la caja conservando su fecha original
+        Pila<Caja> pila = inventario.computeIfAbsent(producto, k -> new Pila<>());
         pila.push(new Caja(idCaja, producto, fechaIngreso));
-        // Aseguramos nextId por encima de los IDs reinyectados
         nextId.updateAndGet(n -> Math.max(n, idCaja + 1));
     }
 
@@ -49,7 +47,7 @@ public class CajaService {
      * @return lista de cajas extraídas (vacía si no hay ninguna).
      */
     public List<Caja> extraerCajas(String producto, int cantidad) {
-        Stack<Caja> pila = inventario.getOrDefault(producto, new Stack<>());
+        Pila<Caja> pila = inventario.getOrDefault(producto, new Pila<>());
         List<Caja> sacadas = new ArrayList<>(cantidad);
         for (int i = 0; i < cantidad && !pila.isEmpty(); i++) {
             sacadas.add(pila.pop());
@@ -61,10 +59,8 @@ public class CajaService {
      * Lista todas las cajas de un producto en orden LIFO (tope primero).
      */
     public List<Caja> listarCajas(String producto) {
-        Stack<Caja> pila = inventario.getOrDefault(producto, new Stack<>());
-        List<Caja> copia = new ArrayList<>(pila);
-        Collections.reverse(copia);  // de tope → fondo
-        return copia;
+        Pila<Caja> pila = inventario.getOrDefault(producto, new Pila<>());
+        return pila.toList();
     }
 
     /**
@@ -72,7 +68,7 @@ public class CajaService {
      * @return número de cajas cargadas.
      */
     public int cargarDesdeCsv(String producto, List<String[]> registros) {
-        Stack<Caja> pila = inventario.computeIfAbsent(producto, k -> new Stack<>());
+        Pila<Caja> pila = inventario.computeIfAbsent(producto, k -> new Pila<>());
         int contador = 0;
         for (String[] linea : registros) {
             if (linea.length != 1) continue;
@@ -91,12 +87,9 @@ public class CajaService {
         List<NodeDTO> nodes = new ArrayList<>();
         List<EdgeDTO> edges = new ArrayList<>();
 
-        // Tomamos los nombres de producto
         List<String> productos = new ArrayList<>(inventario.keySet());
-        // (Opcional: ordenar alfabéticamente)
         Collections.sort(productos);
 
-        // Construimos nodos y aristas
         for (int i = 0; i < productos.size(); i++) {
             nodes.add(new NodeDTO(i, productos.get(i)));
             if (i + 1 < productos.size()) {
@@ -116,10 +109,9 @@ public class CajaService {
         return inventario.entrySet().stream()
             .map(entry -> {
                 String producto = entry.getKey();
-                Stack<Caja> pila = entry.getValue();
-                long cantidad = pila.size();
-                // peek() devuelve la caja más reciente
-                String fechaUltima = cantidad > 0
+                Pila<Caja> pila = entry.getValue();
+                long cantidad = pila.toList().size();
+                String fechaUltima = !pila.isEmpty()
                     ? pila.peek().getFechaIngreso()
                     : "";
                 return new ResumenDTO(producto, cantidad, fechaUltima);

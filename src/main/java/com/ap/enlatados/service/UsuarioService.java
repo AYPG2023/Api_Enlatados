@@ -1,109 +1,80 @@
 package com.ap.enlatados.service;
 
+import com.ap.enlatados.entity.Usuario;
+import com.ap.enlatados.service.eddlineales.Lista;
 import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.EdgeDTO;
 import com.ap.enlatados.dto.NodeDTO;
-import com.ap.enlatados.model.Usuario;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 public class UsuarioService {
 
-    private static class UsuarioNode {
-        Usuario data;
-        UsuarioNode next;
-        UsuarioNode(Usuario u) { this.data = u; }
-    }
-
-    private UsuarioNode head;
-    private Long nextId = 1L;
+    private final Lista<Usuario> lista = new Lista<>();
     private Usuario usuarioLogueado = null;
 
-    /** Registra un usuario nuevo; valida email único */
-    public Usuario registrar(String nombre, String apellidos, String email, String password) {
-        // Verificar que no exista email
-        UsuarioNode t = head;
-        while (t != null) {
-            if (t.data.getEmail().equalsIgnoreCase(email)) {
-                throw new IllegalArgumentException("El email ya está registrado");
-            }
-            t = t.next;
+    /** Registra un usuario nuevo; el ID se pasa desde el DTO */
+    public Usuario registrar(Long id,
+                             String nombre,
+                             String apellidos,
+                             String email,
+                             String password) {
+        // validar ID único
+        if (lista.find(u -> u.getId().equals(id)) != null) {
+            throw new IllegalArgumentException("El ID ya existe: " + id);
         }
-        Usuario nuevo = new Usuario(nextId++, nombre, apellidos, email, password);
-        insertarEnLista(nuevo);
-        return nuevo;
+        // validar email único
+        if (lista.find(u -> u.getEmail().equalsIgnoreCase(email)) != null) {
+            throw new IllegalArgumentException("El email ya está registrado");
+        }
+        Usuario u = new Usuario(id, nombre, apellidos, email, password);
+        lista.add(u);
+        return u;
     }
 
-    /** Inserta al final de la lista enlazada */
-    private void insertarEnLista(Usuario u) {
-        UsuarioNode node = new UsuarioNode(u);
-        if (head == null) {
-            head = node;
-        } else {
-            UsuarioNode t = head;
-            while (t.next != null) t = t.next;
-            t.next = node;
-        }
-    }
-
-    /** Listado de todos los usuarios */
+    /** Lista todos los usuarios */
     public List<Usuario> listar() {
-        List<Usuario> usuarios = new ArrayList<>();
-        UsuarioNode t = head;
-        while (t != null) {
-            usuarios.add(t.data);
-            t = t.next;
-        }
-        return usuarios;
+        return lista.toList();
     }
 
     /** Busca un usuario por su ID */
     public Usuario buscarPorId(Long id) {
-        UsuarioNode t = head;
-        while (t != null) {
-            if (t.data.getId().equals(id)) {
-                return t.data;
-            }
-            t = t.next;
-        }
-        throw new NoSuchElementException("Usuario no encontrado con id " + id);
+        Usuario u = lista.find(x -> x.getId().equals(id));
+        if (u == null) throw new NoSuchElementException("Usuario no encontrado con id " + id);
+        return u;
     }
 
     /** Busca un usuario por su email */
     public Usuario buscarPorEmail(String email) {
-        UsuarioNode t = head;
-        while (t != null) {
-            if (t.data.getEmail().equalsIgnoreCase(email)) {
-                return t.data;
-            }
-            t = t.next;
-        }
-        throw new NoSuchElementException("Usuario no encontrado con email " + email);
+        Usuario u = lista.find(x -> x.getEmail().equalsIgnoreCase(email));
+        if (u == null) throw new NoSuchElementException("Usuario no encontrado con email " + email);
+        return u;
     }
 
-    /** Actualiza un usuario existente; valida email único si cambia */
+    /** Actualiza un usuario existente (no cambia el ID) */
     public Usuario actualizar(Long id,
                               String nombre,
                               String apellidos,
                               String email,
                               String password) {
-        Usuario u = buscarPorId(id); // lanza NoSuchElement si no existe
-
-        // validación de email único si cambia
-        if (!u.getEmail().equalsIgnoreCase(email)) {
-            UsuarioNode t = head;
-            while (t != null) {
-                if (t.data.getEmail().equalsIgnoreCase(email)) {
-                    throw new IllegalArgumentException("El email ya está registrado");
-                }
-                t = t.next;
-            }
+        Usuario u = buscarPorId(id);
+        // si cambió email, validar unicidad
+        if (!u.getEmail().equalsIgnoreCase(email)
+                && lista.find(x -> x.getEmail().equalsIgnoreCase(email)) != null) {
+            throw new IllegalArgumentException("El email ya está registrado");
         }
-
         u.setNombre(nombre);
         u.setApellidos(apellidos);
         u.setEmail(email);
@@ -115,16 +86,13 @@ public class UsuarioService {
 
     /** Iniciar sesión: valida email+password */
     public Usuario iniciarSesion(String email, String password) {
-        UsuarioNode t = head;
-        while (t != null) {
-            if (t.data.getEmail().equalsIgnoreCase(email)
-             && t.data.getPassword().equals(password)) {
-                usuarioLogueado = t.data;
-                return t.data;
-            }
-            t = t.next;
-        }
-        throw new NoSuchElementException("Credenciales inválidas");
+        Usuario u = lista.find(x ->
+            x.getEmail().equalsIgnoreCase(email) &&
+            x.getPassword().equals(password)
+        );
+        if (u == null) throw new NoSuchElementException("Credenciales inválidas");
+        usuarioLogueado = u;
+        return u;
     }
 
     /** Cerrar sesión */
@@ -132,7 +100,7 @@ public class UsuarioService {
         usuarioLogueado = null;
     }
 
-    /** Obtener el usuario actualmente logueado */
+    /** Perfil del usuario actualmente logueado */
     public Usuario obtenerPerfilActual() {
         if (usuarioLogueado == null) {
             throw new NoSuchElementException("No hay usuario logueado");
@@ -140,60 +108,63 @@ public class UsuarioService {
         return usuarioLogueado;
     }
 
-    /** Eliminar usuario por ID; lanza NoSuchElement si no existe */
+    /** Elimina un usuario por ID */
     public void eliminar(Long id) {
-        if (head == null) throw new NoSuchElementException("Usuario no encontrado con id " + id);
-        if (head.data.getId().equals(id)) {
-            head = head.next;
-            if (usuarioLogueado != null && usuarioLogueado.getId().equals(id)) {
-                usuarioLogueado = null;
-            }
-            return;
+        boolean removed = lista.remove(x -> x.getId().equals(id));
+        if (!removed) {
+            throw new NoSuchElementException("Usuario no encontrado con id " + id);
         }
-        UsuarioNode t = head;
-        while (t.next != null) {
-            if (t.next.data.getId().equals(id)) {
-                if (usuarioLogueado != null && usuarioLogueado.getId().equals(id)) {
-                    usuarioLogueado = null;
-                }
-                t.next = t.next.next;
-                return;
-            }
-            t = t.next;
+        // si era el logueado, lo cerramos
+        if (usuarioLogueado != null && usuarioLogueado.getId().equals(id)) {
+            usuarioLogueado = null;
         }
-        throw new NoSuchElementException("Usuario no encontrado con id " + id);
     }
 
-    /** Crear usuario con ID especificado (para CSV) */
-    public Usuario crearConId(Long id, String nombre, String apellidos, String email, String password) {
-        Usuario nuevo = new Usuario(id, nombre, apellidos, email, password);
-        insertarEnLista(nuevo);
-        if (id >= nextId) {
-            nextId = id + 1;
+    /**
+     * Carga un CSV con cabecera:
+     * Id;Nombre;Apellido;Email;Contraseña
+     * y registra cada usuario usando el ID del archivo.
+     */
+    public int cargarUsuariosDesdeCsv(InputStream is) throws IOException {
+        CSVFormat format = CSVFormat.DEFAULT
+            .withFirstRecordAsHeader()
+            .withDelimiter(';')
+            .withIgnoreEmptyLines()
+            .withTrim();
+
+        try (
+            Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+            CSVParser parser = new CSVParser(reader, format)
+        ) {
+            int count = 0;
+            for (CSVRecord record : parser) {
+                Long id = Long.parseLong(record.get("Id"));
+                String nombre    = record.get("Nombre");
+                String apellidos = record.get("Apellido");
+                String email     = record.get("Email");
+                String password  = record.get("Contraseña");
+                registrar(id, nombre, apellidos, email, password);
+                count++;
+            }
+            return count;
         }
-        return nuevo;
     }
 
+    /** Genera el DTO de diagrama (lista enlazada) mostrando solo el ID */
     public DiagramDTO obtenerDiagramaUsuariosDTO() {
-        List<NodeDTO> nodes = new ArrayList<>();
-        List<EdgeDTO> edges = new ArrayList<>();
+        List<NodeDTO> nodes = lista.toList().stream()
+            .map(u -> new NodeDTO(
+                u.getId().intValue(),       // id como entero
+                String.valueOf(u.getId())   // etiqueta solo con el ID
+            ))
+            .collect(Collectors.toList());
 
-        UsuarioNode t = head;
-        int idx = 0;
-        while (t != null) {
-            // etiqueta con id y nombre
-            String label = t.data.getId() + ": " + t.data.getNombre();
-            nodes.add(new NodeDTO(idx, label));
-
-            // si hay siguiente, conecta idx → idx+1
-            if (t.next != null) {
-                edges.add(new EdgeDTO(idx, idx + 1));
-            }
-
-            t = t.next;
-            idx++;
-        }
+        List<EdgeDTO> edges = nodes.stream()
+            .filter(n -> n.getId() < nodes.size() - 1)
+            .map(n -> new EdgeDTO(n.getId(), n.getId() + 1))
+            .collect(Collectors.toList());
 
         return new DiagramDTO(nodes, edges);
     }
+
 }

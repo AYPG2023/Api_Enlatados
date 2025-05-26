@@ -1,10 +1,10 @@
 package com.ap.enlatados.controller;
 
-import com.ap.enlatados.model.Caja;
 import com.ap.enlatados.service.CajaService;
 import com.ap.enlatados.dto.CajaDTO;
 import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.ResumenDTO;
+import com.ap.enlatados.entity.Caja;
 
 import jakarta.validation.Valid;
 import org.springframework.http.*;

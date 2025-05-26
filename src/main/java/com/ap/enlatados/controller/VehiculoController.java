@@ -2,7 +2,7 @@ package com.ap.enlatados.controller;
 
 import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.VehiculoDTO;
-import com.ap.enlatados.model.Vehiculo;
+import com.ap.enlatados.entity.Vehiculo;
 import com.ap.enlatados.service.VehiculoService;
 import jakarta.validation.Valid;
 import org.springframework.http.*;
@@ -99,27 +99,28 @@ public class VehiculoController {
         return ResponseEntity.noContent().build();
     }
 
+
     /**
-     * Carga masiva desde CSV (las líneas se separan por ';').
+     * Carga masiva desde CSV con cabecera:
+     * Placa;Marca;Modelo;Color;año;Tipo de transmisión;TipoVehiculo
      */
-    @PostMapping(path = "/cargar-csv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(
+      path = "/cargar-csv",
+      consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+      produces = MediaType.TEXT_PLAIN_VALUE
+    )
     public ResponseEntity<String> cargarCsv(@RequestParam("archivo") MultipartFile archivo) {
-        try (BufferedReader br = new BufferedReader(
-                 new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))
-        ) {
-            List<String[]> regs = new ArrayList<>();
-            String linea;
-            while ((linea = br.readLine()) != null) {
-                regs.add(linea.split(";"));
-            }
-            svc.cargarMasivo(regs);
-            return ResponseEntity.ok("Vehículos cargados desde CSV");
+        try {
+            int cargados = svc.cargarMasivo(archivo.getInputStream());
+            return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body("Vehículos cargados: " + cargados);
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                 .body("Error al procesar CSV: " + e.getMessage());
+            return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body("Error al procesar CSV: " + e.getMessage());
         }
     }
-
     /**
      * Asigna (dequeue) el siguiente vehículo disponible.
      */

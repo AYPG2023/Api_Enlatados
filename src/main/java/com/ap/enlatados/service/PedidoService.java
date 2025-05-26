@@ -2,29 +2,26 @@ package com.ap.enlatados.service;
 
 import com.ap.enlatados.dto.PedidoDTO;
 import com.ap.enlatados.dto.PedidoItemDTO;
-import com.ap.enlatados.model.CajaPedido;
-import com.ap.enlatados.model.Cliente;
-import com.ap.enlatados.model.Pedido;
-import com.ap.enlatados.model.Repartidor;
-import com.ap.enlatados.model.Vehiculo;
+import com.ap.enlatados.entity.CajaPedido;
+import com.ap.enlatados.entity.Cliente;
+import com.ap.enlatados.entity.Pedido;
+import com.ap.enlatados.entity.Repartidor;
+import com.ap.enlatados.entity.Vehiculo;
+import com.ap.enlatados.service.eddlineales.Lista;
 import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.NodeDTO;
 import com.ap.enlatados.dto.EdgeDTO;
 import org.springframework.stereotype.Service;
 
+import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
 public class PedidoService {
-
-    private static class NodoPedido {
-        Pedido data;
-        NodoPedido next;
-        NodoPedido(Pedido p) { this.data = p; }
-    }
-    private NodoPedido head;
+	private final Lista<Pedido> lista = new Lista<>();
+    
 
     private final CajaService cajaService;
     private final ClienteService clienteService;
@@ -57,7 +54,7 @@ public class PedidoService {
         // 1) Extraer cajas
         List<CajaPedido> cajasPedido = new ArrayList<>();
         for (PedidoItemDTO it : dto.getItems()) {
-            List<com.ap.enlatados.model.Caja> sacadas =
+            List<com.ap.enlatados.entity.Caja> sacadas =
               cajaService.extraerCajas(it.getProducto(), it.getCantidad());
             if (sacadas.isEmpty()) {
                 throw new IllegalArgumentException(
@@ -69,7 +66,7 @@ public class PedidoService {
                   "Stock insuficiente para producto: " + it.getProducto()
                 );
             }
-            for (com.ap.enlatados.model.Caja c : sacadas) {
+            for (com.ap.enlatados.entity.Caja c : sacadas) {
                 cajasPedido.add(new CajaPedido(c.getId(), c.getProducto(), c.getFechaIngreso()));
             }
         }
@@ -116,19 +113,10 @@ public class PedidoService {
 
         // Agregar cajas y enlazar
         cajasPedido.forEach(p::agregarCaja);
-        append(p);
+        lista.add(p);
         return p;
     }
 
-    private void append(Pedido p) {
-        NodoPedido nodo = new NodoPedido(p);
-        if (head == null) head = nodo;
-        else {
-            NodoPedido cur = head;
-            while (cur.next != null) cur = cur.next;
-            cur.next = nodo;
-        }
-    }
 
     /**
      * Completa recursos para pedidos Pendientes.
@@ -172,69 +160,61 @@ public class PedidoService {
 
     /** Listar pedidos (filtrado opcional). */
     public List<Pedido> listarPedidosPorEstado(String estado) {
-        List<Pedido> res = new ArrayList<>();
-        NodoPedido cur = head;
-        while (cur != null) {
-            if (estado == null || estado.isEmpty() || cur.data.getEstado().equalsIgnoreCase(estado)) {
-                res.add(cur.data);
-            }
-            cur = cur.next;
-        }
-        return res;
+        return lista.toList().stream()
+            .filter(p -> estado == null
+                      || estado.isEmpty()
+                      || p.getEstado().equalsIgnoreCase(estado))
+            .collect(Collectors.toList());
     }
 
     /** Eliminar solo completados o cancelados. */
     public boolean eliminarPedido(long id) {
-        if (head == null) return false;
-        java.util.function.Predicate<Pedido> puede = ped ->
-          "Completado".equalsIgnoreCase(ped.getEstado()) || "Cancelado".equalsIgnoreCase(ped.getEstado());
-        if (head.data.getNumeroPedido() == id) {
-            if (!puede.test(head.data)) return false;
-            head = head.next;
-            return true;
-        }
-        NodoPedido prev = head;
-        while (prev.next != null) {
-            if (prev.next.data.getNumeroPedido() == id) {
-                if (!puede.test(prev.next.data)) return false;
-                prev.next = prev.next.next;
-                return true;
-            }
-            prev = prev.next;
-        }
-        return false;
+        return lista.remove(p ->
+            p.getNumeroPedido() == id &&
+            ("Completado".equalsIgnoreCase(p.getEstado())
+          || "Cancelado".equalsIgnoreCase(p.getEstado()))
+        );
     }
 
     /** Buscar un pedido por número. */
     public Pedido buscarPedido(long numeroPedido) {
-        NodoPedido cur = head;
-        while (cur != null) {
-            if (cur.data.getNumeroPedido() == numeroPedido) return cur.data;
-            cur = cur.next;
-        }
-        return null;
+        return lista.find(p -> p.getNumeroPedido() == numeroPedido);
     }
 
     /** Diagrama de lista. */
     public DiagramDTO obtenerDiagramaPedidosDTO() {
+        List<Pedido> pedidos = lista.toList();
         List<NodeDTO> nodes = new ArrayList<>();
         List<EdgeDTO> edges = new ArrayList<>();
 
-        NodoPedido cur = head;
-        int idx = 0;
-        while (cur != null) {
-            // Cada nodo etiqueta con el número de pedido
-            nodes.add(new NodeDTO(idx, String.valueOf(cur.data.getNumeroPedido())));
-            // Si hay siguiente, conecta idx → idx+1
-            if (cur.next != null) {
-                edges.add(new EdgeDTO(idx, idx + 1));
+        for (int i = 0; i < pedidos.size(); i++) {
+            nodes.add(new NodeDTO(i, String.valueOf(pedidos.get(i).getNumeroPedido())));
+            if (i < pedidos.size() - 1) {
+                edges.add(new EdgeDTO(i, i + 1));
             }
-            cur = cur.next;
-            idx++;
         }
 
         return new DiagramDTO(nodes, edges);
     }
+
+    /** Carga masiva desde CSV. */
+    public int cargarDesdeCsv(List<String[]> datos) {
+        int count = 0;
+        for (String[] linea : datos) {
+            if (linea.length != 3) continue;
+            String origen  = linea[0].trim();
+            String destino = linea[1].trim();
+            String dpiCli  = linea[2].trim();
+            Cliente cli = clienteService.buscar(dpiCli);
+            Repartidor rep = repartidorService.dequeue();
+            Vehiculo veh   = vehiculoService.dequeue();
+            Pedido p = new Pedido(origen, destino, cli, rep, veh);
+            lista.add(p);
+            count++;
+        }
+        return count;
+    }
+  
 
     /** Reencola solo recursos asignados (repartidor y vehículo). */
     private void reenqueueCompletionResources(Pedido p) {
@@ -251,21 +231,4 @@ public class PedidoService {
         if (p.getVehiculo()   != null) vehiculoService.reenqueue(p.getVehiculo());
     }
 
-    /** Carga masiva desde CSV. */
-    public int cargarDesdeCsv(List<String[]> datos) {
-        int count = 0;
-        for (String[] linea : datos) {
-            if (linea.length != 3) continue;
-            String origen  = linea[0].trim();
-            String destino = linea[1].trim();
-            String dpiCli  = linea[2].trim();
-            Cliente cli = clienteService.buscar(dpiCli);
-            Repartidor rep = repartidorService.dequeue();
-            Vehiculo veh   = vehiculoService.dequeue();
-            Pedido p = new Pedido(origen, destino, cli, rep, veh);
-            append(p);
-            count++;
-        }
-        return count;
-    }
 }

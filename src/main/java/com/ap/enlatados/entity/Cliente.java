@@ -1,4 +1,4 @@
-package com.ap.enlatados.model;
+package com.ap.enlatados.entity;
 
 public class Cliente {
     private String dpi; // Clave principal

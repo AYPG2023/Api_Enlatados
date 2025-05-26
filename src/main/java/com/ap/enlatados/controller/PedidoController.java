@@ -2,7 +2,7 @@ package com.ap.enlatados.controller;
 
 import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.PedidoDTO;
-import com.ap.enlatados.model.Pedido;
+import com.ap.enlatados.entity.Pedido;
 import com.ap.enlatados.service.PedidoService;
 import jakarta.validation.Valid;
 import org.springframework.http.*;

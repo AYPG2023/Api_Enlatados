@@ -2,7 +2,7 @@ package com.ap.enlatados.controller;
 
 import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.RepartidorDTO;
-import com.ap.enlatados.model.Repartidor;
+import com.ap.enlatados.entity.Repartidor;
 import com.ap.enlatados.service.RepartidorService;
 import jakarta.validation.Valid;
 import org.springframework.http.*;
@@ -74,24 +74,29 @@ public class RepartidorController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(path = "/cargar-csv",
-                 consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> cargarCsv(@RequestParam("archivo") MultipartFile archivo) {
-        try (BufferedReader br = new BufferedReader(
-                 new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))
-        ) {
-            List<String[]> regs = new ArrayList<>();
-            String linea;
-            while ((linea = br.readLine()) != null) {
-                regs.add(linea.split(";"));
-            }
-            svc.cargarMasivo(regs);
-            return ResponseEntity.ok("Repartidores cargados desde CSV");
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                 .body("Error al procesar CSV: " + e.getMessage());
+    @PostMapping(
+    	      path = "/cargar-csv",
+    	      consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+    	      produces = MediaType.TEXT_PLAIN_VALUE
+    	    )
+    	    public ResponseEntity<String> cargarCsv(@RequestParam("archivo") MultipartFile archivo) {
+    	        try {
+    	            int inserted = svc.cargarRepartidoresDesdeCsv(archivo.getInputStream());
+    	            return ResponseEntity
+    	                .status(HttpStatus.CREATED)
+    	                .body("Repartidores cargados: " + inserted);
+    	        }
+    	        catch (RepartidorService.BulkLoadException ex) {
+    	            return ResponseEntity
+    	                .status(HttpStatus.CONFLICT)
+    	                .body("Error de duplicados: " + ex.getMessage());
+    	        }
+    	        catch (IOException e) {
+    	            return ResponseEntity
+    	                .status(HttpStatus.BAD_REQUEST)
+    	                .body("Error leyendo CSV: " + e.getMessage());
+           }
         }
-    }
     
 
     @GetMapping(path = "/diagrama-json", produces = MediaType.APPLICATION_JSON_VALUE)

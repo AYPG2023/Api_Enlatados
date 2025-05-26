@@ -1,4 +1,4 @@
-package com.ap.enlatados.model;
+package com.ap.enlatados.entity;
 
 public class Vehiculo {
     private String placa;

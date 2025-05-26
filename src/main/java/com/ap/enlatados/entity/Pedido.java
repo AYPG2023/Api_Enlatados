@@ -1,4 +1,4 @@
-package com.ap.enlatados.model;
+package com.ap.enlatados.entity;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

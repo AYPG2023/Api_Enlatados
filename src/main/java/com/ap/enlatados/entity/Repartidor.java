@@ -1,4 +1,4 @@
-package com.ap.enlatados.model;
+package com.ap.enlatados.entity;
 
 public class Repartidor {
     private String dpi;
