@@ -5,15 +5,15 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public class Lista<T> {
-    private Node<T> head;
+    private Nodo<T> head;
 
     /** Añade al final */
     public void add(T item) {
-        Node<T> n = new Node<>(item);
+        Nodo<T> n = new Nodo<>(item);
         if (head == null) {
             head = n;
         } else {
-            Node<T> t = head;
+            Nodo<T> t = head;
             while (t.next != null) t = t.next;
             t.next = n;
         }
@@ -21,7 +21,7 @@ public class Lista<T> {
 
     /** Busca primer elemento que cumple el predicado o null */
     public T find(Predicate<T> pred) {
-        Node<T> t = head;
+        Nodo<T> t = head;
         while (t != null) {
             if (pred.test(t.data)) return t.data;
             t = t.next;
@@ -36,7 +36,7 @@ public class Lista<T> {
             head = head.next;
             return true;
         }
-        Node<T> t = head;
+        Nodo<T> t = head;
         while (t.next != null) {
             if (pred.test(t.next.data)) {
                 t.next = t.next.next;
@@ -50,7 +50,7 @@ public class Lista<T> {
     /** Devuelve todo en List */
     public List<T> toList() {
         List<T> out = new ArrayList<>();
-        Node<T> t = head;
+        Nodo<T> t = head;
         while (t != null) {
             out.add(t.data);
             t = t.next;

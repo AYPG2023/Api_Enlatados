@@ -1,10 +1,10 @@
 package com.ap.enlatados.service.eddlineales;
 
-public class Node<T> {
+public class Nodo<T> {
     T data;
-    Node<T> next;
+    Nodo<T> next;
 
-    public Node(T data) {
+    public Nodo(T data) {
         this.data = data;
         this.next = null;
     }

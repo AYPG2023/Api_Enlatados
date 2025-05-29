@@ -7,11 +7,11 @@ import java.util.List;
  * Estructura de datos Pila (LIFO) genérica.
  */
 public class Pila<T> {
-    private Node<T> top;
+    private Nodo<T> top;
 
     /** Inserta un elemento en la cima de la pila. */
     public void push(T item) {
-        Node<T> n = new Node<>(item);
+        Nodo<T> n = new Nodo<>(item);
         n.next = top;
         top = n;
     }
@@ -38,7 +38,7 @@ public class Pila<T> {
     /** Devuelve todos los elementos de tope a fondo. */
     public List<T> toList() {
         List<T> out = new ArrayList<>();
-        Node<T> curr = top;
+        Nodo<T> curr = top;
         while (curr != null) {
             out.add(curr.data);
             curr = curr.next;
