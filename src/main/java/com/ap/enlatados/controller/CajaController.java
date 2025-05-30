@@ -6,7 +6,7 @@ import com.ap.enlatados.dto.DiagramDTO;
 import com.ap.enlatados.dto.ResumenDTO;
 import com.ap.enlatados.entity.Caja;
 
-import jakarta.validation.Valid;
+import jakarta.validation.*;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;

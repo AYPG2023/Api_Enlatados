@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.function.Function;
 
 /**
-* Árbol AVL genérico, clave K comparable extraída de T.
+* Árbol AVL genérico, clave K comparable y se puede extraer en T.
 */
 public class ArbolAvl<T, K extends Comparable<K>> {
  private AvlNode<T,K> root;
@@ -72,19 +72,26 @@ public class ArbolAvl<T, K extends Comparable<K>> {
      return n == null ? 0 : height(n.left) - height(n.right);
  }
 
+ /*** Hace el balance entre nodos*/
  private AvlNode<T,K> rebalance(AvlNode<T,K> z) {
      int b = balance(z);
+     //Hace un rotacion doble entre L Y R
      if (b > 1) {
          if (balance(z.left) < 0) z.left = rotateLeft(z.left);
+         //Rotacion simple hacia la derecha
          return rotateRight(z);
      }
      if (b < -1) {
+         //Hace un rotacion doble entre R Y L
          if (balance(z.right) > 0) z.right = rotateRight(z.right);
+         //Rotacion simple hacia la izquierda.
          return rotateLeft(z);
      }
-     return z;
+     return z; // Lo devuelve  ya balanceado.
  }
 
+ /**Hace la rotacion hacia la derecha
+     * */
  private AvlNode<T,K> rotateRight(AvlNode<T,K> y) {
      AvlNode<T,K> x = y.left;
      y.left = x.right;
@@ -94,6 +101,8 @@ public class ArbolAvl<T, K extends Comparable<K>> {
      return x;
  }
 
+ /**Hace la rotacion hacia la izquierda
+  * */
  private AvlNode<T,K> rotateLeft(AvlNode<T,K> x) {
      AvlNode<T,K> y = x.right;
      x.right = y.left;
@@ -103,6 +112,8 @@ public class ArbolAvl<T, K extends Comparable<K>> {
      return y;
  }
 
+ /**Busca comparando las clavs hasta poder encontrar un nodo o llegar a null.
+  * */
  public T find(K key) {
      AvlNode<T,K> n = findNode(root, key);
      return n == null ? null : n.data;
@@ -116,6 +127,9 @@ public class ArbolAvl<T, K extends Comparable<K>> {
      else              return node;
  }
 
+
+ /**Hace un recorrido en orden.
+  * */
  public List<T> inOrder() {
      List<T> out = new ArrayList<>();
      traverse(root, out);
