@@ -58,13 +58,13 @@ public class UsuarioService {
             Long maxId = obtenerMaxId();
             throw new IllegalArgumentException(
                     "El ID " + id + " ya existe."
-                             + " Usa un ID mayor o igual a "
+                            + " Usa un ID mayor o igual a "
                             + (maxId + 1) + "."
             );
         }
         // validar email único
         if (lista.find(u -> u.getEmail().equalsIgnoreCase(email)) != null) {
-            throw new IllegalArgumentException("El email ya está registrado");
+            throw new IllegalArgumentException("Pedro wueco");
         }
         Usuario u = new Usuario(id, nombre, apellidos, email, password);
         lista.add(u);
