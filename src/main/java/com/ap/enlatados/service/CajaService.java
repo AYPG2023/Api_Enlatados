@@ -67,18 +67,38 @@ public class CajaService {
      * Carga masivo de cajas desde CSV, cada línea solo lleva el ID.
      * @return número de cajas cargadas.
      */
-    public int cargarDesdeCsv(String producto, List<String[]> registros) {
-        Pila<Caja> pila = inventario.computeIfAbsent(producto, k -> new Pila<>());
-        int contador = 0;
+    /**
+     * Carga masivo de cajas desde CSV que tiene header: producto;cantidad
+     * Cada línea debe indicar el nombre del producto y cuántas cajas (cantidad) crear.
+     * @return número total de cajas creadas (suma de todas las cantidades).
+     */
+    public int cargarDesdeCsv(List<String[]> registros) {
+        int totalCreadas = 0;
+
         for (String[] linea : registros) {
-            if (linea.length != 1) continue;
-            long id = Long.parseLong(linea[0].trim());
-            pila.push(new Caja(id, producto, LocalDateTime.now().toString()));
-            nextId.updateAndGet(n -> Math.max(n, id + 1));
-            contador++;
+            // Se espera exactamente 2 columnas: [0]=producto, [1]=cantidad
+            if (linea.length != 2) {
+                continue; // omite líneas mal formateadas
+            }
+            String producto = linea[0].trim();
+            int cantidad;
+            try {
+                cantidad = Integer.parseInt(linea[1].trim());
+            } catch (NumberFormatException e) {
+                continue; // omite si la cantidad no es numérica
+            }
+            // Para cada producto, agregamos 'cantidad' cajas
+            Pila<Caja> pila = inventario.computeIfAbsent(producto, k -> new Pila<>());
+            for (int i = 0; i < cantidad; i++) {
+                long id = nextId.getAndIncrement();
+                pila.push(new Caja(id, producto, LocalDateTime.now().toString()));
+                totalCreadas++;
+            }
         }
-        return contador;
+
+        return totalCreadas;
     }
+
 
     /**
      * Genera un diagrama textual de la pila de un producto: "[idN] -> ... -> NULL"

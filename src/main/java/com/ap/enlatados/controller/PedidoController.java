@@ -123,7 +123,6 @@ public ResponseEntity<?> crearPedido(@Valid @RequestBody PedidoDTO dto) {
 
     /** 9) Carga CSV */
     @PostMapping(path = "/cargar-csv",
-                 consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
                  produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> cargarDesdeCsv(
       @RequestParam("archivo") MultipartFile archivo

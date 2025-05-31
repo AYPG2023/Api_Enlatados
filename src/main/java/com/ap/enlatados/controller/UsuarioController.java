@@ -115,8 +115,7 @@ public class UsuarioController {
 
     /** POST /api/usuarios/cargar-csv */
     @PostMapping(
-        path = "/cargar-csv",
-        consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+        path = "/cargar-csv"
     )
     public ResponseEntity<String> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
         try {

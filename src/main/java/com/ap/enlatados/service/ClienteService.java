@@ -50,19 +50,7 @@ public class ClienteService {
         tree.delete(dpi);
     }
 
-    /** Carga masiva desde lista de String[] (como ya tenías) */
-    public void cargarMasivo(List<String[]> datos) {
-        for (String[] linea : datos) {
-            if (linea.length != 5) continue;
-            crear(new Cliente(
-                linea[0].trim(),
-                linea[1].trim(),
-                linea[2].trim(),
-                linea[3].trim(),
-                linea[4].trim()
-            ));
-        }
-    }
+
 
     /** 2) Nuevo método para cargar desde un CSV con Commons‐CSV */
     public int cargarClientesDesdeCsv(InputStream is) throws IOException {

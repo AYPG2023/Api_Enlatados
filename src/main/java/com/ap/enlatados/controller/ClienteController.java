@@ -41,6 +41,19 @@ public class ClienteController {
         return ResponseEntity.status(HttpStatus.CREATED).body(c);
     }
 
+    /**
+     * /api/clientes/{dpi}:
+     * Busca un cliente por su DPI y, si existe, lo devuelve.
+     */
+    @GetMapping(path = "/{dpi}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Cliente> obtenerPorDpi(@PathVariable String dpi) {
+        try {
+            Cliente c = clienteService.buscar(dpi);
+            return ResponseEntity.ok(c);
+        } catch (NoSuchElementException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+    }
     /** Actualizar cliente por DPI recibiendo JSON */
     @PutMapping(
       path = "/{dpi}",
@@ -64,9 +77,9 @@ public class ClienteController {
 
     /** Eliminar cliente por DPI */
     @DeleteMapping("/{dpi}")
-    public ResponseEntity<Void> eliminar(@PathVariable String dpi) {
+    public ResponseEntity<String> eliminar(@PathVariable String dpi) {
         clienteService.eliminar(dpi);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Cliente eliminado");
     }
 
     /** Listar todos los clientes */
@@ -82,7 +95,6 @@ public class ClienteController {
 
     @PostMapping(
       path = "/cargar-csv",
-      consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
       produces = MediaType.TEXT_PLAIN_VALUE
     )
     public ResponseEntity<String> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {

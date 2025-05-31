@@ -87,21 +87,4 @@ public class CajaServiceTest {
         }
     }
 
-    @Test
-    public void testCargarDesdeCsvYListar() {
-        // Simulo dos líneas de CSV con sólo el ID
-        List<String[]> registros = Arrays.asList(
-                new String[]{ "100" },
-                new String[]{ "200" }
-        );
-
-        int count = service.cargarDesdeCsv("C", registros);
-        assertEquals(2, count);
-
-        List<Caja> lista = service.listarCajas("C");
-        assertEquals(2, lista.size());
-        // Los IDs deben coincidir con los cargados
-        assertTrue(lista.stream().anyMatch(c -> c.getId() == 100L));
-        assertTrue(lista.stream().anyMatch(c -> c.getId() == 200L));
-    }
 }

@@ -91,30 +91,38 @@ public class CajaController {
      * Form-data: archivo (CSV)
      */
     @PostMapping(
-      path = "/cargar-csv",
-      consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-      produces = MediaType.TEXT_PLAIN_VALUE
+            path = "/cargar-csv",
+            produces = MediaType.TEXT_PLAIN_VALUE
     )
-    public ResponseEntity<String> cargarDesdeCsv(
-        @RequestParam String producto,
-        @RequestParam("archivo") MultipartFile archivo
-    ) {
+    public ResponseEntity<String> cargarDesdeCsv(@RequestParam("archivo") MultipartFile archivo) {
         try (BufferedReader br = new BufferedReader(
-                 new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))
+                new InputStreamReader(archivo.getInputStream(), StandardCharsets.UTF_8))
         ) {
             List<String[]> registros = new ArrayList<>();
             String linea;
+            boolean esPrimeraLinea = true;
+
+            // Leer línea por línea, saltando la cabecera
             while ((linea = br.readLine()) != null) {
-                registros.add(new String[]{ linea.trim() });
+                if (esPrimeraLinea) {
+                    esPrimeraLinea = false;   // omitimos "producto;cantidad"
+                    continue;
+                }
+                // Cada línea debe tener: producto;cantidad
+                String[] columnas = linea.split(";");
+                registros.add(columnas);
             }
-            int total = cajaService.cargarDesdeCsv(producto, registros);
-            return ResponseEntity.ok("Se cargaron " + total + " cajas de " + producto);
+
+            // Llamamos al servicio que procesa producto y cantidad por fila
+            int totalCreadas = cajaService.cargarDesdeCsv(registros);
+            return ResponseEntity.ok("Se crearon un total de " + totalCreadas + " cajas");
         } catch (IOException e) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body("Error al procesar el archivo: " + e.getMessage());
         }
     }
+
 
     /**
      * Devuelve un diagrama textual de la pila del producto:

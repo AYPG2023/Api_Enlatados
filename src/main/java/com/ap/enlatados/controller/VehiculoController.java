@@ -106,7 +106,6 @@ public class VehiculoController {
      */
     @PostMapping(
       path = "/cargar-csv",
-      consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
       produces = MediaType.TEXT_PLAIN_VALUE
     )
     public ResponseEntity<String> cargarCsv(@RequestParam("archivo") MultipartFile archivo) {
