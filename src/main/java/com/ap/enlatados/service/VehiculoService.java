@@ -96,8 +96,6 @@ public class VehiculoService {
     /**
      * Carga masivo desde CSV con cabecera:
      * Placa;Marca;Modelo;Color;año;Tipo de transmisión;TipoVehiculo
-     * Si hay placas repetidas (ya en cola o duplicadas en el archivo),
-     * lanza un 400 indicando cuáles.
      */
     public int cargarMasivo(InputStream is) throws IOException {
         CSVFormat fmt = CSVFormat.DEFAULT

@@ -28,7 +28,6 @@ public class Vehiculo {
         this.tipoVehiculo = tipoVehiculo;
     }
 
-    // Getters
     public String getPlaca()         { return placa; }
     public String getMarca()         { return marca; }
     public String getModelo()        { return modelo; }
@@ -37,7 +36,7 @@ public class Vehiculo {
     public String getTransmision()   { return transmision; }
     public String getTipoVehiculo()  { return tipoVehiculo; }
 
-    // Setters (no setPlaca)
+
     public void setMarca(String marca)               { this.marca = marca; }
     public void setModelo(String modelo)             { this.modelo = modelo; }
     public void setColor(String color)               { this.color = color; }

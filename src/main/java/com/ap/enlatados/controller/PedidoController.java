@@ -114,7 +114,7 @@ public ResponseEntity<?> crearPedido(@Valid @RequestBody PedidoDTO dto) {
         }
     }
 
-    /** 8) Diagrama (debug) */
+    /** 8) Diagrama */
     @GetMapping(path = "/diagrama-json", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DiagramDTO> diagramaJson() {
         DiagramDTO dto = pedidoService.obtenerDiagramaPedidosDTO();

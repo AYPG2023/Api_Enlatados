@@ -36,7 +36,7 @@ public class UsuarioController {
     public ResponseEntity<?> registrarUsuario(@RequestBody @Valid UsuarioDTO dto) {
         try {
             Usuario nuevo = usuarioService.registrar(
-                dto.getId(),               // ← ahora recibimos el ID desde el DTO
+                dto.getId(),
                 dto.getNombre(),
                 dto.getApellidos(),
                 dto.getEmail(),

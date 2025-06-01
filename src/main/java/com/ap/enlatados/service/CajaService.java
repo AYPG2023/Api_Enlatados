@@ -67,11 +67,6 @@ public class CajaService {
      * Carga masivo de cajas desde CSV, cada línea solo lleva el ID.
      * @return número de cajas cargadas.
      */
-    /**
-     * Carga masivo de cajas desde CSV que tiene header: producto;cantidad
-     * Cada línea debe indicar el nombre del producto y cuántas cajas (cantidad) crear.
-     * @return número total de cajas creadas (suma de todas las cantidades).
-     */
     public int cargarDesdeCsv(List<String[]> registros) {
         int totalCreadas = 0;
 
@@ -101,7 +96,7 @@ public class CajaService {
 
 
     /**
-     * Genera un diagrama textual de la pila de un producto: "[idN] -> ... -> NULL"
+     * Genera un diagrama textual de la pila"
      */
     public DiagramDTO obtenerDiagramaProductosDTO() {
         List<NodeDTO> nodes = new ArrayList<>();
@@ -123,7 +118,6 @@ public class CajaService {
     /**
      * Devuelve un listado de ResumenDTO con un resumen por producto:
      *  - cantidad de cajas (tamaño de la pila)
-     *  - fecha de la última caja (tope de la pila)
      */
     public List<ResumenDTO> obtenerResumenDeProductos() {
         return inventario.entrySet().stream()

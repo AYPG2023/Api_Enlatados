@@ -2,10 +2,6 @@ package com.ap.enlatados.service.eddlineales;
 
 import java.util.ArrayList;
 import java.util.List;
-
-/**
- * Estructura de datos Pila (LIFO) genérica.
- */
 public class Pila<T> {
     private Nodo<T> top;
 
